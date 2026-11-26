@@ -37,11 +37,16 @@ const SITE_HOST_PATH = "platform.zharf.ai/code";
 
 export const RULES: readonly Rule[] = [
   // ── Repository and web addresses ─────────────────────────────────────────────────────────
-  { id: "repo", find: /pingdotgg\/t3code/gi, replace: BRAND.repo },
+  // Lowercase stays lowercase: code compares repositories case-insensitively by lowercasing them.
+  {
+    id: "repo",
+    find: /pingdotgg\/t3code/gi,
+    replace: (match) => (match === match.toLowerCase() ? BRAND.repo.toLowerCase() : BRAND.repo),
+  },
   {
     id: "repo-pair",
     find: /\bowner(["']?:\s*)(["'])pingdotgg\2(,\s*["']?repo["']?:\s*)(["'])t3code\4/g,
-    replace: "owner$1$2ZharfAI$2$3$4zharf-code$4",
+    replace: "owner$1$2zharfai$2$3$4zharf-code$4",
   },
   { id: "mcp-app-name", find: /\bT3%20Code\b/g, replace: "Zharf%20Code" },
   // The hosted web app needs an origin of its own (code compares URL origins), so it gets a
@@ -140,7 +145,7 @@ export const RULES: readonly Rule[] = [
     replace: `"${BRAND.command}"`,
   },
   { id: "boot-service", find: /(?<=BOOT_SERVICE_NAME = ")t3code(?=")/g, replace: BRAND.command },
-  { id: "term-program", find: /(?<=TERM_PROGRAM = ")t3code(?=")/g, replace: BRAND.command },
+  { id: "term-program", find: /(?<=TERM_PROGRAM(?: =|:) ")t3code(?=")/g, replace: BRAND.command },
   {
     id: "package-name",
     find: /(?<=^\s*name: ")t3code(?=",)/gm,
@@ -155,12 +160,19 @@ export const RULES: readonly Rule[] = [
 
   // ── The command: `t3` becomes `zharf-code` ───────────────────────────────────────────────
   // Worktree branches: "t3/<hex>" becomes "zharf/<hex>"
+  {
+    id: "branch-tests",
+    find: /(?<![\w./@#$-])([tT])3(?=["'`/]|-[Ff][Ii][Xx])/g,
+    replace: (match) => (match === "t3" ? "zharf" : "Zharf"),
+    only: /GitVcsDriverCore\.test\.ts$/,
+  },
   { id: "branch-prefix", find: /(?<=WORKTREE_BRANCH_PREFIX = ")t3(?=")/g, replace: "zharf" },
   {
     id: "branch-example",
     find: /^.*t3\/(?:add-search|<hex>).*$/gm,
     replace: (line) => line.replace(/(?<![\w./@#\\-])t3(?=[\s/])/g, "zharf"),
   },
+  { id: "branch-regex", find: /(?<=\^)t3(?=\\\/)/g, replace: "zharf", only: TEST_FILE },
   {
     id: "branch-literal",
     find: /(?<=["'`])t3\/(?=[\w.-]+["'`])/g,
@@ -171,8 +183,15 @@ export const RULES: readonly Rule[] = [
   // The package.json bin entry and the code that reads or writes it
   { id: "cli-bin-key", find: /(?<=\{ )t3(?=: Schema\.String \})/g, replace: `"${BRAND.command}"` },
   { id: "cli-bin-write", find: /(?<=\bbin: \{ )t3(?=:)/g, replace: `"${BRAND.command}"` },
+  {
+    id: "cli-bin-object",
+    find: /(?<=\{\s*)t3(?=:\s*["'`]\.\/bin\/)/g,
+    replace: `"${BRAND.command}"`,
+  },
   { id: "cli-bin-read", find: /\.bin\.t3\b/g, replace: `.bin["${BRAND.command}"]` },
   // npm, npx and bun caches of the published launcher: …/node_modules/t3/dist, …/cache/t3/bin
+  // A home folder named after the command, in the runtime layout: …/t3/runtime/versions/…
+  { id: "cli-home-dir", find: /(?<=\/)t3(?=\/runtime\/)/g, replace: BRAND.command },
   { id: "cli-package-dir", find: /(?<=\/)t3(?=\/(?:dist|bin)\/)/g, replace: BRAND.command },
   {
     id: "cli-npm",
@@ -202,7 +221,7 @@ export const RULES: readonly Rule[] = [
   // The word itself, in prose, messages and command lines; not code named t3
   {
     id: "cli-word",
-    find: /(?<![\w$./@#\\-])t3(?![\w#/@.-]|\\(?![`'"])|\\?\.[A-Za-z])/g,
+    find: /(?<![\w$./@#\\-])t3(?![\w#/@.[-]|\\(?![`'"])|\\?\.[A-Za-z])/g, // not regexes: t3[-_ ]?code
     replace: (match, offset, text, path) => {
       const before = text.slice(Math.max(0, offset - 12), offset);
       const after = text.slice(offset + match.length, offset + match.length + 6);
@@ -243,7 +262,7 @@ export const RULES: readonly Rule[] = [
     // not the `T3: {…}` global, nor `T3${name}Stream`-style generated identifiers
     find: /(?<![\w$@/.+=\\-])T3(?![\w$-]|\.[A-Za-z_]| Chat\b|:\s*[{[(])/g,
     replace: BRAND.name,
-    not: /\.(test|integration|spec|e2e)\.[cm]?[jt]sx?$|(^|\/)(test|tests|fixtures)\/|^scripts\/scenarios\//, // scenarios type their fixture as T3
+    not: /\.e2e\.[cm]?[jt]sx?$|^scripts\/scenarios\//, // scenarios type their fixture as T3
   },
 ];
 

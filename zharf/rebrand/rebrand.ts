@@ -157,13 +157,67 @@ for (const rel of listTree(sectionsDir)) {
 }
 console.log(`sections: ${sectionCount} replaced`);
 
-// ── 3. translation catalogs ───────────────────────────────────────────────────────────────
+// ── 3. format ─────────────────────────────────────────────────────────────────────────────
+// A longer name can push a line past the print width. Formatting every changed file here, the
+// way the pre-commit hook would, keeps later hand-written commits from reflowing whole files.
+// Before the catalogs: the extracted English text follows the formatted JSX.
+if (!flag("--no-format")) {
+  const vp = NodePath.join(root, "node_modules/.bin/vp");
+  if (!NodeFS.existsSync(vp)) {
+    console.error(
+      "format: node_modules/.bin/vp is missing (run pnpm install); files not formatted",
+    );
+    process.exitCode = 1;
+  } else {
+    const list = (...gitArgs: string[]) =>
+      NodeChildProcess.execFileSync("git", ["-C", root, ...gitArgs], {
+        maxBuffer: 64 * 1024 * 1024,
+      })
+        .toString("utf8")
+        .split("\n")
+        .filter(Boolean);
+    const touched = [
+      ...list("diff", "--name-only", "--diff-filter=AMR", "HEAD"),
+      ...list("ls-files", "--others", "--exclude-standard"),
+    ].filter((file) => !/^zharf\//.test(file) && NodeFS.existsSync(NodePath.join(root, file)));
+    for (let i = 0; i < touched.length; i += 200) {
+      const run = NodeChildProcess.spawnSync(
+        vp,
+        ["fmt", "--no-error-on-unmatched-pattern", ...touched.slice(i, i + 200)],
+        { cwd: root, encoding: "utf8" },
+      );
+      if (run.status !== 0) {
+        console.error(`format: vp fmt failed\n${run.stdout}${run.stderr}`);
+        process.exitCode = 1;
+        break;
+      }
+    }
+    console.log(`format: ${touched.length} file(s) checked`);
+  }
+}
+
+// ── 4. translation catalogs ───────────────────────────────────────────────────────────────
 type Catalog = Record<string, unknown>;
 const GENERATE: Record<string, readonly string[]> = {
   "apps/web": ["node_modules/gt/bin/main.js", "generate"],
   "apps/mobile": ["node_modules/gt/bin/main.js", "generate"],
   "apps/desktop": ["scripts/i18n-generate.mjs"],
 };
+
+/** A catalog entry compared as text: JSX pieces joined and whitespace collapsed, so a line the
+ * formatter wrapped (which adds a " " piece) still matches its old entry. */
+function entryText(value: unknown): string {
+  if (!Array.isArray(value))
+    return JSON.stringify(typeof value === "string" ? value.replace(/\s+/g, " ") : value);
+  const parts: unknown[] = [];
+  for (const piece of value) {
+    const last = parts.at(-1);
+    if (typeof piece === "string" && typeof last === "string")
+      parts[parts.length - 1] = last + piece;
+    else parts.push(piece);
+  }
+  return JSON.stringify(parts.map((p) => (typeof p === "string" ? p.replace(/\s+/g, " ") : p)));
+}
 
 function readJson(file: string): Catalog {
   return JSON.parse(NodeFS.readFileSync(file, "utf8"));
@@ -211,7 +265,7 @@ for (const [app, generateArgs] of flag("--no-i18n") ? [] : Object.entries(GENERA
   // new key -> old key, matched by the (rebranded) English text
   const oldByText = new Map<string, string[]>();
   for (const [key, value] of Object.entries(current)) {
-    const text = JSON.stringify(value);
+    const text = entryText(value);
     oldByText.set(text, [...(oldByText.get(text) ?? []), key]);
   }
   const oldKeyFor = new Map<string, string>();
@@ -222,7 +276,7 @@ for (const [app, generateArgs] of flag("--no-i18n") ? [] : Object.entries(GENERA
       oldKeyFor.set(newKey, newKey);
       continue;
     }
-    const candidates = (oldByText.get(JSON.stringify(value)) ?? []).filter(
+    const candidates = (oldByText.get(entryText(value)) ?? []).filter(
       (key) => !Object.hasOwn(generated, key),
     );
     if (candidates.length === 1) oldKeyFor.set(newKey, candidates[0]!);
@@ -257,7 +311,7 @@ for (const [app, generateArgs] of flag("--no-i18n") ? [] : Object.entries(GENERA
   );
 }
 
-// ── 4. gate ───────────────────────────────────────────────────────────────────────────────
+// ── 5. gate ───────────────────────────────────────────────────────────────────────────────
 if (!flag("--no-gate")) {
   const findings = scanTree(root, gitFiles(root));
   console.log(report(findings, Number(process.env.GATE_LIMIT ?? 120)));
