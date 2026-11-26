@@ -20,7 +20,8 @@ import * as DesktopEnvironment from "./DesktopEnvironment.ts";
 import * as DesktopObservability from "./DesktopObservability.ts";
 import * as DesktopState from "./DesktopState.ts";
 
-const RELEASES_URL = "https://github.com/zharfai/zharf-code/releases";
+// Zharf Code: the download page on platform.zharf.ai, which Iran's national network can reach.
+const RELEASES_URL = "https://platform.zharf.ai/code";
 const LAST_STARTED_VERSION_FILE = "desktop-last-started-version";
 // Buttons are plain links to this host; will-navigate cancels them and runs the action.
 const ACTION_ORIGIN = "https://startup-recovery.invalid";

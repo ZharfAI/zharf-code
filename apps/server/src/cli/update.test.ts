@@ -31,7 +31,7 @@ import * as ProcessRunner from "../processRunner.ts";
 import {
   repointLauncher,
   resolveMirrorVersion,
-  resolveNewestVersion,
+  resolveNewestGitHubVersion,
   runUpdate,
 } from "./update.ts";
 
@@ -66,7 +66,7 @@ it.effect("authenticates each release page until the requested channel is found"
       const tag_name = page === "1" ? "v1.2.4-preview.20260101.1" : "v1.2.3";
       return Effect.succeed(HttpClientResponse.fromWeb(request, Response.json([{ tag_name }])));
     });
-    const version = yield* resolveNewestVersion("stable").pipe(
+    const version = yield* resolveNewestGitHubVersion("stable").pipe(
       Effect.provideService(HostProcess.Environment, { GH_TOKEN: "gh-token" }),
       Effect.provideService(HttpClient.HttpClient, httpClient),
     );

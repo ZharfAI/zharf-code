@@ -7,6 +7,7 @@ import {
   newestCliReleaseVersion,
   releaseAssetUrl,
   updateFeedFileName,
+  ZHARF_RELEASES_URL,
   type CliReleaseChannel,
 } from "@t3tools/shared/cliRelease";
 import * as Console from "effect/Console";
@@ -72,7 +73,15 @@ const decodeReleaseIndex = Schema.decodeUnknownEffect(Schema.fromJsonString(Rele
 const RELEASE_INDEX_TIMEOUT = Duration.seconds(30);
 const RELEASE_INDEX_MAX_PAGES = 10;
 
-export const resolveNewestVersion = Effect.fn("cli.update.resolve_newest")(function* (
+/**
+ * Zharf Code: the newest release comes from the update feed on platform.zharf.ai (reachable on
+ * Iran's national network), read like an organization's update mirror. GitHub is not asked.
+ */
+const resolveNewestVersion = (channel: CliReleaseChannel) =>
+  resolveMirrorVersion({ organization: "Zharf Code", feedUrl: ZHARF_RELEASES_URL }, channel);
+
+/** Upstream's GitHub release index lookup, kept for comparison and its tests. */
+export const resolveNewestGitHubVersion = Effect.fn("cli.update.resolve_newest")(function* (
   channel: CliReleaseChannel,
 ) {
   const httpClient = yield* HttpClient.HttpClient;

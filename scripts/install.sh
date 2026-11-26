@@ -1,6 +1,6 @@
 #!/bin/sh
-# Installs the Zharf Code CLI from a GitHub Release archive. Needs only sh, tar,
-# sha256sum or shasum, and curl or wget; no Node, npm, or compiler.
+# Installs the Zharf Code CLI from a release archive on platform.zharf.ai. Needs only sh,
+# tar, sha256sum or shasum, and curl or wget; no Node, npm, or compiler.
 #
 #   curl -fsSL https://platform.zharf.ai/code/install.sh | sh
 #
@@ -10,7 +10,7 @@
 #   T3CODE_VERSION           exact version to install (overrides T3CODE_CHANNEL)
 #   T3CODE_HOME              Zharf Code home directory (default: ~/.zharf-code)
 #   T3CODE_INSTALL_BIN_DIR   where the `zharf-code` command goes (default: ~/.local/bin)
-#   T3CODE_RELEASE_BASE_URL  mirror for releases/download (default: GitHub)
+#   T3CODE_RELEASE_BASE_URL  release mirror (default: https://platform.zharf.ai/code/releases)
 #
 # The archive is unpacked into $T3CODE_HOME/runtime/versions/<version>, the
 # same layout `zharf-code service install` uses, so the service reuses this download
@@ -18,7 +18,9 @@
 set -eu
 
 repo="zharfai/zharf-code"
-base_url="${T3CODE_RELEASE_BASE_URL:-https://github.com/${repo}/releases/download}"
+# The update-mirror layout: latest*.yml at the root, v<version>/ holds archives and SHA256SUMS.
+base_url="${T3CODE_RELEASE_BASE_URL:-https://platform.zharf.ai/code/releases}"
+base_url="${base_url%/}"
 t3_home="${T3CODE_HOME:-$HOME/.zharf-code}"
 case "$t3_home" in
   /*) ;;
@@ -53,13 +55,7 @@ step() {
   else printf '  %s\n' "$1" >&2; fi
 }
 if "$interactive"; then
-  printf '\n%s' "$bold" >&2
-  printf '  %s\n' '██████████ ████████ ' >&2
-  printf '  %s\n' '    ███       ▄██▀       Zharf Code' >&2
-  printf '  %s%s     %sCLI installer%s\n' '    ███       ████▄ ' "$reset" "$muted" "$reset$bold" >&2
-  printf '  %s\n' '    ███    ▄     ███' >&2
-  printf '  %s\n' '    ███    ███████▀ ' >&2
-  printf '%s\n' "$reset" >&2
+  printf '\n  %sZharf Code%s  %sCLI installer · platform.zharf.ai%s\n\n' "$bold" "$reset" "$muted" "$reset" >&2
 fi
 step "Finding your release..."
 
@@ -186,25 +182,20 @@ channel="${T3CODE_CHANNEL:-stable}"
 version="${T3CODE_VERSION:-}"
 if [ -z "$version" ]; then
   case "$channel" in
-    stable) tag_pattern='v\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\)' ;;
-    nightly | preview) tag_pattern="v\([0-9][^\"]*-${channel}\.[0-9]*\.[0-9]*\)" ;;
+    stable) feed_channel=latest ;;
+    nightly) feed_channel=nightly ;;
+    preview) fail "preview builds are not published to the mirror; set T3CODE_VERSION" ;;
     *) fail "T3CODE_CHANNEL must be stable, nightly, or preview" ;;
   esac
+  # The desktop app's update feed for this platform names the release the CLI belongs to.
+  case "${platform}-${arch}" in
+    darwin-*) feed="${feed_channel}-mac.yml" ;;
+    linux-arm64) feed="${feed_channel}-linux-arm64.yml" ;;
+    *) feed="${feed_channel}-linux.yml" ;;
+  esac
   tmp_index="$(mktemp)"
-  if [ "$channel" = stable ]; then
-    # release.yml marks only plain stable releases latest. This is a github.com
-    # page, so it is not cut off by a page of newer nightlies or the API quota.
-    fetch "https://github.com/${repo}/releases/latest" "$tmp_index" application/json
-    version="$(sed -n "s/.*\"tag_name\": *\"${tag_pattern}\".*/\1/p" "$tmp_index" | head -n 1)"
-  else
-    page=1
-    while [ -z "$version" ] && [ "$page" -le 10 ]; do
-      fetch "https://api.github.com/repos/${repo}/releases?per_page=100&page=${page}" "$tmp_index"
-      version="$(sed -n "s/.*\"tag_name\": *\"${tag_pattern}\".*/\1/p" "$tmp_index" | head -n 1)"
-      grep -q '"tag_name"' "$tmp_index" || break
-      page=$((page + 1))
-    done
-  fi
+  fetch "${base_url}/${feed}" "$tmp_index" || true
+  version="$(sed -n "s/^version: *[\"']*\([0-9][^\"' ]*\).*/\1/p" "$tmp_index" | head -n 1)"
   rm -f "$tmp_index"
   [ -n "$version" ] || fail "could not find a ${channel} release; set T3CODE_VERSION"
 fi

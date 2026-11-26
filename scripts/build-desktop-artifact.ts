@@ -2732,9 +2732,19 @@ export const resolveGitHubPublishConfig = Effect.fn("resolveGitHubPublishConfig"
   updateChannel: "latest" | "nightly",
 ) {
   const env = yield* Config.all({
+    updateUrl: Config.String("T3CODE_DESKTOP_UPDATE_URL").pipe(Config.option),
     updateRepository: Config.String("T3CODE_DESKTOP_UPDATE_REPOSITORY").pipe(Config.option),
     githubRepository: Config.String("GITHUB_REPOSITORY").pipe(Config.option),
   });
+  // Zharf Code releases feed the app from platform.zharf.ai, not GitHub (see release.yml).
+  const updateUrl = Option.getOrUndefined(env.updateUrl)?.trim();
+  if (updateUrl) {
+    return {
+      provider: "generic",
+      url: updateUrl,
+      ...(updateChannel === "nightly" ? { channel: "nightly" as const } : {}),
+    };
+  }
   const rawRepo = (
     Option.getOrUndefined(env.updateRepository)?.trim() ||
     Option.getOrUndefined(env.githubRepository)?.trim() ||

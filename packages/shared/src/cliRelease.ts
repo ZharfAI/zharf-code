@@ -42,7 +42,12 @@ export function cliArchiveFileName(version: string, platformKey: CliArchivePlatf
   return `zharf-code-${version}-${platformKey}.${platformKey.startsWith("win32") ? "zip" : "tar.gz"}`;
 }
 
-const CLI_RELEASE_DEFAULT_BASE_URL = `https://github.com/${CLI_RELEASE_REPOSITORY}/releases/download`;
+/**
+ * Zharf Code serves its releases from platform.zharf.ai, which Iran's national network can reach,
+ * in the update-mirror layout: `latest*.yml` at the root, archives and SHA256SUMS in `v<version>/`.
+ */
+export const ZHARF_RELEASES_URL = "https://platform.zharf.ai/code/releases";
+const CLI_RELEASE_DEFAULT_BASE_URL = ZHARF_RELEASES_URL;
 
 export function cliReleaseDownloadBaseUrl(
   version: string,

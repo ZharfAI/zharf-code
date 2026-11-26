@@ -1,6 +1,11 @@
 # Product usage data
 
-The Zharf Code server sends product usage events to Zharf Code's own endpoint at `ingest.zharf.ai`,
+Zharf Code sends no product usage data. It has no analytics endpoint, so the events described on
+this page, including [agent feedback](#agent-feedback), go nowhere unless the person running the
+server sets both `T3CODE_POSTHOG_HOST` and `T3CODE_POSTHOG_KEY` to a PostHog-compatible endpoint of
+their own. With those set, the rest of this page describes what is sent and how to turn it off.
+
+The server then sends product usage events to that endpoint,
 associated with a hashed random identifier for the installation. To count how many installations one person
 uses, the server also sends a hashed identifier for your Zharf Connect account when you are signed in
 to one, and a random identifier for each device that connects. The endpoint keeps a copy of each
@@ -66,8 +71,9 @@ exactly what each one holds.
 
 ## Relay connection diagnostics
 
-Zharf Code sends relay connection traces to Axiom to diagnose Zharf Connect connectivity. These are
-separate from product events. Traces carry connection timings, request paths, environment and
+Zharf Code releases are built without relay tracing, so they send none. A build made with
+`T3CODE_RELAY_CLIENT_OTLP_TRACES_*` set sends relay connection traces to that OpenTelemetry
+endpoint to diagnose Zharf Connect connectivity. These are separate from product events. Traces carry connection timings, request paths, environment and
 thread identifiers, and error types. They omit machine addresses, query strings, log lines,
 error messages, and stack frames.
 

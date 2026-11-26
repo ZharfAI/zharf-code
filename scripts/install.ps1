@@ -1,4 +1,4 @@
-# Installs the Zharf Code CLI from a GitHub Release archive on Windows. Needs
+# Installs the Zharf Code CLI from a release archive on platform.zharf.ai on Windows. Needs
 # only PowerShell 5.1+; no Node, npm, or compiler.
 #
 #   irm https://platform.zharf.ai/code/install.ps1 | iex
@@ -9,7 +9,7 @@
 #   T3CODE_VERSION           exact version to install (overrides T3CODE_CHANNEL)
 #   T3CODE_HOME              Zharf Code home directory (default: ~\.zharf-code)
 #   T3CODE_INSTALL_BIN_DIR   where zharf-code.exe is linked (default: ~\.local\bin)
-#   T3CODE_RELEASE_BASE_URL  mirror for releases/download (default: GitHub)
+#   T3CODE_RELEASE_BASE_URL  release mirror (default: https://platform.zharf.ai/code/releases)
 #
 # The archive is unpacked into $T3CODE_HOME\runtime\versions\<version>, the
 # same layout `zharf-code service install` uses, so the service reuses this download.
@@ -17,7 +17,7 @@ $ErrorActionPreference = "Stop"
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 $repo = "zharfai/zharf-code"
-$baseUrl = if ($env:T3CODE_RELEASE_BASE_URL) { $env:T3CODE_RELEASE_BASE_URL.TrimEnd("/") } else { "https://github.com/$repo/releases/download" }
+$baseUrl = if ($env:T3CODE_RELEASE_BASE_URL) { $env:T3CODE_RELEASE_BASE_URL.TrimEnd("/") } else { "https://platform.zharf.ai/code/releases" }
 $t3Home = if ($env:T3CODE_HOME) { $env:T3CODE_HOME } else { Join-Path $HOME ".zharf-code" }
 $binDir = if ($env:T3CODE_INSTALL_BIN_DIR) { $env:T3CODE_INSTALL_BIN_DIR } else { Join-Path $HOME ".local\bin" }
 # Absolute, so PATH never gets a folder that changes with the working directory.
@@ -118,20 +118,8 @@ function Fetch([string] $uri, [string] $destination, [switch] $progress) {
   }
 }
 if ($interactive) {
-  # Block characters are constructed so this file also loads correctly in PowerShell 5.1.
-  $mark = @(
-    "########## ######## ",
-    "    ###       _##^  ",
-    "    ###       ####_ ",
-    "    ###    _     ###",
-    "    ###    #######^ "
-  )
   [Console]::Error.WriteLine()
-  for ($i = 0; $i -lt $mark.Length; $i++) {
-    $row = $mark[$i].Replace('#', [char]0x2588).Replace('^', [char]0x2580).Replace('_', [char]0x2584)
-    $label = if ($i -eq 1) { "     ${bold}Zharf Code$reset" } elseif ($i -eq 2) { "     ${muted}CLI installer$reset" } else { "" }
-    [Console]::Error.WriteLine("  $bold$row$reset$label")
-  }
+  [Console]::Error.WriteLine("  ${bold}Zharf Code$reset  ${muted}CLI installer $([char]0x00B7) platform.zharf.ai$reset")
   [Console]::Error.WriteLine()
 }
 Step "Finding your release..."
@@ -147,27 +135,16 @@ $arch = switch ($rawArch) {
 $channel = if ($env:T3CODE_CHANNEL) { $env:T3CODE_CHANNEL } else { "stable" }
 $version = $env:T3CODE_VERSION
 if (-not $version) {
-  $tagPattern = switch ($channel) {
-    "stable" { '^v\d+\.\d+\.\d+$' }
-    "nightly" { '^v\d+\.\d+\.\d+-nightly\.\d+\.\d+$' }
-    "preview" { '^v\d+\.\d+\.\d+-preview\.\d+\.\d+$' }
+  # The desktop app's Windows update feed on the mirror names the current release.
+  $feed = switch ($channel) {
+    "stable" { "latest.yml" }
+    "nightly" { "nightly.yml" }
+    "preview" { Fail "preview builds are not published to the mirror; set T3CODE_VERSION" }
     default { Fail "T3CODE_CHANNEL must be stable, nightly, or preview" }
   }
-  if ($channel -eq "stable") {
-    # release.yml marks only plain stable releases latest. This is a github.com
-    # page, so it is not cut off by a page of newer nightlies or the API quota.
-    $release = Invoke-Retrying { Invoke-RestMethod -Uri "https://github.com/$repo/releases/latest" -Headers @{ "User-Agent" = "t3-install"; "Accept" = "application/json" } }
-    $tag = ($release | Where-Object { $_.tag_name -match $tagPattern }).tag_name
-  } else {
-    $tag = $null
-    for ($page = 1; -not $tag -and $page -le 10; $page++) {
-      $releases = Invoke-Retrying { Invoke-RestMethod -Uri "https://api.github.com/repos/$repo/releases?per_page=100&page=$page" -Headers @{ "User-Agent" = "t3-install" } }
-      $tag = ($releases | Where-Object { -not $_.draft -and $_.tag_name -match $tagPattern } | Select-Object -First 1).tag_name
-      if (-not $releases) { break }
-    }
-  }
-  if (-not $tag) { Fail "could not find a $channel release; set T3CODE_VERSION" }
-  $version = $tag.Substring(1)
+  $feedText = Invoke-Retrying { Invoke-RestMethod -Uri "$baseUrl/$feed" -Headers @{ "User-Agent" = "zharf-code-install" } }
+  $version = if ("$feedText" -match '(?m)^version:\s*["'']?([0-9][^"''\s]*)') { $Matches[1] } else { $null }
+  if (-not $version) { Fail "could not find a $channel release; set T3CODE_VERSION" }
 }
 if ($version -match '-preview\.') {
   Write-Warning "zharf-code $version is a preview build. Preview builds are cut by maintainers from unreleased branches to exercise the release pipeline. They can be broken, receive no fixes, and are never offered as updates. Set T3CODE_CHANNEL=stable (the default) for a supported build."
