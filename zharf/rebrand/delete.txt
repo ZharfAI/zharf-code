@@ -1,0 +1,50 @@
+# Upstream paths the fork does not ship. One path per line, relative to the repo root.
+# The fork's own replacements (if any) live in zharf/overrides and are copied in afterwards.
+#
+# Kept and adapted by hand on main instead: .github/workflows/{ci,release,release-desktop,
+# windows-tests}.yml (scripts/build-desktop-artifact.test.ts reads the release workflows).
+
+# T3's deploy, preview, store and community workflows: Vercel, Cloudflare, Expo, AUR, Discord,
+# its contributor vouching and triage bots.
+.github/workflows/agent-context-budget.yml
+.github/workflows/deploy-relay.yml
+.github/workflows/issue-labels.yml
+.github/workflows/issue-vouch.yml
+.github/workflows/mobile-android-apk.yml
+.github/workflows/mobile-dev-client.yml
+.github/workflows/mobile-eas-preview-build.yml
+.github/workflows/mobile-eas-preview-fork.yml
+.github/workflows/mobile-eas-preview.yml
+.github/workflows/mobile-eas-production-build.yml
+.github/workflows/mobile-eas-production.yml
+.github/workflows/mobile-fingerprint-check.yml
+.github/workflows/mobile-fingerprint-label.yml
+.github/workflows/mobile-showcase-screenshots.yml
+.github/workflows/pr-limits.yml
+.github/workflows/pr-size.yml
+.github/workflows/pr-vouch.yml
+.github/workflows/publish-aur.yml
+.github/workflows/relay-preview-cleanup.yml
+.github/workflows/relay-preview.yml
+.github/workflows/stale-needs-more-info.yml
+.github/workflows/thread-transfer-report.yml
+.github/workflows/web-preview.yml
+.github/triage
+.github/readme
+.github/VOUCHED.td
+.github/TRIAGE_EXEMPTIONS.td
+.github/SECURITY.md
+.github/ISSUE_TEMPLATE/via-triage.yml
+.github/scripts/mirror-play-apk.cjs
+.github/scripts/mobile-ios-preview-record.cjs
+
+# T3's own development services: its CI task cache, review bot, launch-video skill
+.task-cache.json
+.macroscope
+.agents/skills/launch-video
+
+# T3's Arch Linux packages (published under T3's AUR account) and Discord release notices
+packaging/aur
+scripts/aur-release.test.ts
+scripts/notify-discord-release.ts
+scripts/notify-discord-release.test.ts
