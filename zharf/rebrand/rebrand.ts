@@ -7,7 +7,7 @@ import * as NodeOS from "node:os";
 import * as NodePath from "node:path";
 
 import { applyRules, RENAMES, SKIP } from "./rules.ts";
-import { isText, report, scanTree } from "./gate.ts";
+import { fails, isText, report, scanTree } from "./gate.ts";
 
 const args = process.argv.slice(2);
 const flag = (name: string) => args.includes(name);
@@ -313,7 +313,7 @@ for (const [app, generateArgs] of flag("--no-i18n") ? [] : Object.entries(GENERA
 
 // ── 5. gate ───────────────────────────────────────────────────────────────────────────────
 if (!flag("--no-gate")) {
-  const findings = scanTree(root, gitFiles(root));
+  const findings = scanTree(root, gitFiles(root), flag("--strict"));
   console.log(report(findings, Number(process.env.GATE_LIMIT ?? 120)));
-  if (findings.length > 0) process.exitCode = 1;
+  if (fails(findings, flag("--strict"))) process.exitCode = 1;
 }

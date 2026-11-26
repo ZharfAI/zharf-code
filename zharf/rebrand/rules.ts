@@ -56,10 +56,38 @@ export const RULES: readonly Rule[] = [
     find: /\b(?:nightly\.|latest\.|preview\.)?app\.t3\.codes\b/g,
     replace: "code.zharf.ai",
   },
+  // T3's store listings: Zharf Code's phone apps are not published yet, so the download page.
+  {
+    id: "store-links",
+    find: /https:\/\/(?:apps\.apple\.com\/[a-z]{2}\/app\/t3-code-remote-claude-more\/id6787819824|play\.google\.com\/store\/apps\/details\?id=com\.t3tools\.t3code)/g,
+    replace: "https://platform.zharf.ai/code",
+  },
+  // The same legal pages platform.zharf.ai links to.
+  {
+    id: "legal-privacy",
+    find: /(https?:\/\/)?(?<![\w.-])t3\.codes\/privacy-policy\b/g,
+    replace: "https://zharf.ai/privacy",
+  },
+  {
+    id: "legal-terms",
+    find: /(https?:\/\/)?(?<![\w.-])t3\.codes\/terms-of-service\b/g,
+    replace: "https://zharf.ai/terms",
+  },
+  // One download page for every platform, the phone apps included.
+  {
+    id: "download-page",
+    find: /(https?:\/\/)?(?<![\w.-])t3\.codes\/(?:download|mobile)\b/g,
+    replace: "$1platform.zharf.ai/code",
+  },
   { id: "relay", find: /\brelay\.t3\.codes\b/g, replace: "relay.zharf.ai" },
   { id: "clerk", find: /\bclerk\.t3\.codes\b/g, replace: "accounts.zharf.ai" },
   { id: "ingest", find: /\bingest\.t3\.codes\b/g, replace: "ingest.zharf.ai" },
-  { id: "email", find: /\b([a-z0-9._+-]+)@t3\.(?:codes|tools)\b/g, replace: "$1@zharf.ai" },
+  {
+    id: "email",
+    find: /\b([a-z0-9._+-]+)@t3\.(?:codes|tools)\b/g,
+    replace: (match) =>
+      /^(noreply|bench)@/.test(match) ? match.replace(/@.*/, "@zharf.ai") : "security@zharf.ai",
+  },
   { id: "site", find: /(https?:\/\/)?(?<![\w.-])t3\.codes\b/g, replace: `$1${SITE_HOST_PATH}` },
 
   // ── App identity ─────────────────────────────────────────────────────────────────────────
@@ -151,6 +179,11 @@ export const RULES: readonly Rule[] = [
     find: /(?<=^\s*name: ")t3code(?=",)/gm,
     replace: BRAND.command,
     only: /build-desktop-artifact\.ts$/,
+  },
+  {
+    id: "os-names",
+    find: /\bt3code(?=-\$\{domain\}|-<domain>|-\$\{name\}-|-provider-updates\b|-backend-recovery\b|\.mobileconfig\b|-pr-)|(?<=startsWith\(")t3code(?=-")|(?<=\b90-)t3code(?=-protect\.conf)|(?<=\^)t3code(?=\[\/-\]pr-)/g,
+    replace: BRAND.command,
   },
   {
     id: "home-dir",
