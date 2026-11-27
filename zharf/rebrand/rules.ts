@@ -472,13 +472,14 @@ export const RULES: readonly Rule[] = [
   // ends in T3 (sample names)
   {
     id: "bare-tests",
-    find: /(?<![\w$@/.+=\\-])(?<!=\s+)T3(?![\w$-]|\.[A-Za-z_]| Chat\b|:\s*[{[(])/g,
+    find: /(?<![\w$@/.+=\\-])(?<!=\s+)T3(?![\w$-]|\.[A-Za-z_]| (?:Chat|Code|Connect)\b|:\s*[{[(])/g,
     replace: (match, offset, text) => {
       const after = text.slice(offset + 2, offset + 4);
       if (/^["`]/.test(after) || (/^'/.test(after) && after !== "'s")) return match;
       return BRAND.name;
     },
     only: /\.test\.[cm]?[jt]sx?$/,
+    not: SAMPLE_DATA,
   },
 ];
 
