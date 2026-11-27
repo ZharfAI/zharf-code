@@ -14,7 +14,11 @@ import * as McpToolAccessTestkit from "../../McpToolAccess.testkit.ts";
 import * as WorkflowHandlers from "./handlers.ts";
 import { WorkflowToolkit } from "./tools.ts";
 
-const fullAccess = { sessionId: "session-1", label: "t3 CLI", access: "full-access" } as const;
+const fullAccess = {
+  sessionId: "session-1",
+  label: "zharf-code CLI",
+  access: "full-access",
+} as const;
 const supervised = { sessionId: "session-2", label: "Bot", access: "approval-required" } as const;
 
 const handlersWith = (
@@ -271,7 +275,7 @@ it.effect("an answer sent through the tool names the client that sent it", () =>
         }),
       ),
     );
-    expect(named).toEqual(["t3 CLI"]);
+    expect(named).toEqual(["zharf-code CLI"]);
   }),
 );
 
@@ -354,7 +358,7 @@ it.effect(
         "Tool 't3_workflow' not found",
       ]);
       expect(result.sent).toBe(false);
-      expect(named).toEqual(["t3 CLI"]);
+      expect(named).toEqual(["zharf-code CLI"]);
     }),
 );
 
@@ -375,7 +379,9 @@ it.effect("withdraw names the caller who withdrew the question and says whether 
         }),
       ),
     );
-    expect(calls).toEqual([["run-1", "wanted", { by: "t3 CLI", reason: "settled elsewhere" }]]);
+    expect(calls).toEqual([
+      ["run-1", "wanted", { by: "zharf-code CLI", reason: "settled elsewhere" }],
+    ]);
     expect(result).toEqual({ withdrawal: "not_open", steps: [], references: [] });
   }),
 );

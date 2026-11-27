@@ -258,10 +258,10 @@ describe("ThreadPullRequestServiceV2 reads", () => {
 
   it.effect("looks up a finished turn's branch once for all its turn-end events", () =>
     Effect.gen(function* () {
-      const thread = { ...threadShell("turn-end-thread"), branch: "t3/turn-end" };
+      const thread = { ...threadShell("turn-end-thread"), branch: "zharf/turn-end" };
       const otherThread = {
         ...threadShell("other-turn-end-thread"),
-        branch: "t3/other-turn-end",
+        branch: "zharf/other-turn-end",
       };
       const project: OrchestrationProjectShell = {
         id: thread.projectId,
@@ -683,7 +683,7 @@ describe("ThreadPullRequestServiceV2 reads", () => {
       };
       const child: OrchestrationV2ThreadShell = {
         ...threadShell("child-thread"),
-        branch: "t3/reply-ok",
+        branch: "zharf/reply-ok",
         worktreePath: "/workspace/child",
         lineage: {
           rootThreadId: parent.id,

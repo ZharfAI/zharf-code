@@ -1983,56 +1983,58 @@ describe("UsageService", () => {
     }),
   );
 
-  it.effect("reads the Cursor account of an API key or T3 sign-in instead of a CLI login", () =>
-    Effect.gen(function* () {
-      const { settings, home } = yield* setup;
-      const signIn = new TextEncoder().encode(
-        encodeUnknownJsonString({
-          version: 1,
-          backendUrl: "https://api2.cursor.sh",
-          apiKey: "signed-in-key",
-          createdAtMs: 0,
-        }),
-      );
-      yield* Effect.promise(async () => {
-        await NodeFSP.mkdir(NodePath.join(home, ".cursor"), { recursive: true });
-        await NodeFSP.writeFile(
-          NodePath.join(home, ".cursor", "auth.json"),
-          '{"accessToken":"stale-cli-token"}',
+  it.effect(
+    "reads the Cursor account of an API key or Zharf Code sign-in instead of a CLI login",
+    () =>
+      Effect.gen(function* () {
+        const { settings, home } = yield* setup;
+        const signIn = new TextEncoder().encode(
+          encodeUnknownJsonString({
+            version: 1,
+            backendUrl: "https://api2.cursor.sh",
+            apiKey: "signed-in-key",
+            createdAtMs: 0,
+          }),
         );
-      });
-      for (const [index, testCase] of [
-        { environment: { CURSOR_API_KEY: "environment-key" }, stored: Option.none() },
-        { environment: {}, stored: Option.some(signIn) },
-        { environment: {}, stored: Option.none() },
-      ].entries()) {
-        const cursor = makeFakeCursor();
-        const summary = yield* Effect.gen(function* () {
-          const service = yield* makeWithCursor(cursor.read);
-          return yield* service.readSummary({ ...WINDOW, awaitRefresh: true });
-        }).pipe(
-          Effect.provide(
-            layerService({
-              prefix: `usage-service-cursor-api-key-${index}`,
-              home,
-              settings,
-              platform: "darwin",
-              environment: testCase.environment,
-              secretStore: { get: () => Effect.succeed(testCase.stored) },
-            }),
-          ),
-        );
-        if (index === 2) {
-          assert.deepStrictEqual(cursor.state.credentials, []);
-          assert.isUndefined(cursorSource(summary));
-          continue;
+        yield* Effect.promise(async () => {
+          await NodeFSP.mkdir(NodePath.join(home, ".cursor"), { recursive: true });
+          await NodeFSP.writeFile(
+            NodePath.join(home, ".cursor", "auth.json"),
+            '{"accessToken":"stale-cli-token"}',
+          );
+        });
+        for (const [index, testCase] of [
+          { environment: { CURSOR_API_KEY: "environment-key" }, stored: Option.none() },
+          { environment: {}, stored: Option.some(signIn) },
+          { environment: {}, stored: Option.none() },
+        ].entries()) {
+          const cursor = makeFakeCursor();
+          const summary = yield* Effect.gen(function* () {
+            const service = yield* makeWithCursor(cursor.read);
+            return yield* service.readSummary({ ...WINDOW, awaitRefresh: true });
+          }).pipe(
+            Effect.provide(
+              layerService({
+                prefix: `usage-service-cursor-api-key-${index}`,
+                home,
+                settings,
+                platform: "darwin",
+                environment: testCase.environment,
+                secretStore: { get: () => Effect.succeed(testCase.stored) },
+              }),
+            ),
+          );
+          if (index === 2) {
+            assert.deepStrictEqual(cursor.state.credentials, []);
+            assert.isUndefined(cursorSource(summary));
+            continue;
+          }
+          assert.deepStrictEqual(cursor.state.credentials, [
+            { kind: "apiKey", apiKey: index === 0 ? "environment-key" : "signed-in-key" },
+          ]);
+          assert.strictEqual(cursorSource(summary)?.status, "ok");
         }
-        assert.deepStrictEqual(cursor.state.credentials, [
-          { kind: "apiKey", apiKey: index === 0 ? "environment-key" : "signed-in-key" },
-        ]);
-        assert.strictEqual(cursorSource(summary)?.status, "ok");
-      }
-    }),
+      }),
   );
 
   it.effect("does not show a previous Cursor account's history after the API key changes", () =>
@@ -2598,59 +2600,61 @@ describe("UsageService", () => {
     }),
   );
 
-  it.effect("reads Antigravity history from the default instance's T3-managed profile", () =>
-    Effect.gen(function* () {
-      const { settings, home } = yield* setup;
-      const prefix = "usage-service-antigravity-default-profile-test";
-      const stateDir = NodePath.join(home, prefix, "userdata");
-      const conversations = NodePath.join(
-        stateDir,
-        "providers",
-        "antigravity",
-        // sha256("antigravity"), the default instance's profile key.
-        "ac0a3dfd6dddb20962cecff6ee5fe65e19d3923be20e52c5ab52ff877f7e4c32",
-        "antigravity-acp",
-        "conversations",
-      );
-      yield* Effect.promise(async () => {
-        await NodeFSP.mkdir(conversations, { recursive: true });
-        const db = new NodeSqlite.DatabaseSync(NodePath.join(conversations, "profile.db"));
-        try {
-          db.exec("CREATE TABLE steps (idx INTEGER, metadata BLOB)");
-          // Step protobuf: 100 input tokens, 7 output tokens, and 2026-08-01T10:00Z.
-          const metadata = new Uint8Array([
-            0x4a,
-            4,
-            0x10,
-            100,
-            0x18,
+  it.effect(
+    "reads Antigravity history from the default instance's Zharf Code-managed profile",
+    () =>
+      Effect.gen(function* () {
+        const { settings, home } = yield* setup;
+        const prefix = "usage-service-antigravity-default-profile-test";
+        const stateDir = NodePath.join(home, prefix, "userdata");
+        const conversations = NodePath.join(
+          stateDir,
+          "providers",
+          "antigravity",
+          // sha256("antigravity"), the default instance's profile key.
+          "ac0a3dfd6dddb20962cecff6ee5fe65e19d3923be20e52c5ab52ff877f7e4c32",
+          "antigravity-acp",
+          "conversations",
+        );
+        yield* Effect.promise(async () => {
+          await NodeFSP.mkdir(conversations, { recursive: true });
+          const db = new NodeSqlite.DatabaseSync(NodePath.join(conversations, "profile.db"));
+          try {
+            db.exec("CREATE TABLE steps (idx INTEGER, metadata BLOB)");
+            // Step protobuf: 100 input tokens, 7 output tokens, and 2026-08-01T10:00Z.
+            const metadata = new Uint8Array([
+              0x4a,
+              4,
+              0x10,
+              100,
+              0x18,
+              7,
+              ...Buffer.from("420608a087b7d306", "hex"),
+            ]);
+            db.prepare("INSERT INTO steps VALUES (?, ?)").run(0, metadata);
+          } finally {
+            db.close();
+          }
+        });
+        yield* Effect.gen(function* () {
+          assert.strictEqual((yield* ServerConfig.ServerConfig).stateDir, stateDir);
+          const service = yield* UsageService.make;
+          const summary = yield* service.readSummary(WINDOW);
+          const root = yield* Effect.promise(() => NodeFSP.realpath(conversations));
+          assert.include(
+            summary.sources
+              .filter((source) => source.fingerprint.provider === "antigravity")
+              .map((source) => source.fingerprint.resolvedHomePath),
+            root,
+          );
+          assert.strictEqual(
+            summary.buckets
+              .filter((bucket) => bucket.provider === "antigravity" && bucket.sourcePath === root)
+              .reduce((sum, bucket) => sum + bucket.totals.outputTokens, 0),
             7,
-            ...Buffer.from("420608a087b7d306", "hex"),
-          ]);
-          db.prepare("INSERT INTO steps VALUES (?, ?)").run(0, metadata);
-        } finally {
-          db.close();
-        }
-      });
-      yield* Effect.gen(function* () {
-        assert.strictEqual((yield* ServerConfig.ServerConfig).stateDir, stateDir);
-        const service = yield* UsageService.make;
-        const summary = yield* service.readSummary(WINDOW);
-        const root = yield* Effect.promise(() => NodeFSP.realpath(conversations));
-        assert.include(
-          summary.sources
-            .filter((source) => source.fingerprint.provider === "antigravity")
-            .map((source) => source.fingerprint.resolvedHomePath),
-          root,
-        );
-        assert.strictEqual(
-          summary.buckets
-            .filter((bucket) => bucket.provider === "antigravity" && bucket.sourcePath === root)
-            .reduce((sum, bucket) => sum + bucket.totals.outputTokens, 0),
-          7,
-        );
-      }).pipe(Effect.provide(layerService({ prefix, home, settings })));
-    }),
+          );
+        }).pipe(Effect.provide(layerService({ prefix, home, settings })));
+      }),
   );
 
   it.effect("reads configured and disabled accounts once across shared and aliased homes", () =>

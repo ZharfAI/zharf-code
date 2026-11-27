@@ -159,7 +159,7 @@ function makeLatestRun(overrides?: {
 }
 
 describe("withoutRemovedCheckout", () => {
-  const worktree = { branch: "t3/task", worktreePath: "/worktrees/task" };
+  const worktree = { branch: "zharf/task", worktreePath: "/worktrees/task" };
   const local = { branch: "main", worktreePath: null };
   const removed = { branch: null, worktreePath: null };
   const tracking = { trackedFolders: [{ path: "/work/wrapper/api" }] };
@@ -1661,7 +1661,7 @@ describe("resolveSidebarRouteReveal", () => {
 describe("sidebarFolderExpansionKeys", () => {
   it("honors a collapse the legacy sidebar saved under a member's cwd", () => {
     const keys = sidebarFolderExpansionKeys({
-      projectKey: "github.com/pingdotgg/t3code",
+      projectKey: "github.com/zharfai/zharf-code",
       memberProjects: [{ physicalProjectKey: "local:/code/t3code", workspaceRoot: "/code/t3code" }],
     });
     const cwdKey = keys.at(-1)!;

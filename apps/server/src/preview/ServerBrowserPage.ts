@@ -566,7 +566,7 @@ export const captureViewport = async (
           new ServerBrowserOperationError({
             tag: "PreviewAutomationExecutionError",
             message:
-              "The browser is not producing screenshot frames. For a desktop tab, show or restore the T3 Code window and try again.",
+              "The browser is not producing screenshot frames. For a desktop tab, show or restore the Zharf Code window and try again.",
           }),
         ),
       SCREENSHOT_TIMEOUT_MS,
@@ -753,7 +753,7 @@ const capture = async (
   const accessibilityTree = (dotted ? maskTree(redacted, dotted) : redacted)
     .slice(0, MAX_VISIBLE_TEXT_LENGTH)
     .replace(/\[ref=((?:f\d+)?e\d+)\]/g, (_match, nativeRef: string) => {
-      const ref = `t3-${generation}-${nativeRef}`;
+      const ref = `zharf-code-${generation}-${nativeRef}`;
       state.refs.set(ref, nativeRef);
       return `[ref=${ref}]`;
     });

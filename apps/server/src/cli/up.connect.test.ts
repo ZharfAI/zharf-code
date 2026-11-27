@@ -15,7 +15,7 @@ import packageJson from "../../package.json" with { type: "json" };
 import * as BootService from "../cloud/bootService.ts";
 import { upCommand } from "./up.ts";
 
-// T3 Connect's flows run only in builds with its public config, and they call
+// Zharf Connect's flows run only in builds with its public config, and they call
 // the relay; this file swaps in the link and unlink steps.
 const events = vi.hoisted((): Array<string> => []);
 // The CLI link marker, kept in memory instead of the secret store.
@@ -58,7 +58,7 @@ vi.mock("./connect.ts", async (importOriginal) => {
 });
 
 it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer, NetService.layer))(
-  "t3 up with T3 Connect",
+  "zharf-code up with Zharf Connect",
   (it) => {
     it.effect.each([
       { label: "no link", prior: null, events: ["link", "restart", "unlink", "restart"] },
@@ -80,8 +80,8 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer, NetService.layer))
           supported: true,
           installed: true,
           current: true,
-          unitPath: "/home/me/.config/systemd/user/t3code.service",
-          logPath: "/home/me/.t3/userdata/logs/boot-service.log",
+          unitPath: "/home/me/.config/systemd/user/zharf-code.service",
+          logPath: "/home/me/.zharf-code/userdata/logs/boot-service.log",
         };
         vi.spyOn(BootService, "layer").mockReturnValue(
           Layer.succeed(
@@ -142,9 +142,9 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer, NetService.layer))
                 supported: true,
                 installed: true,
                 current: false,
-                otherBaseDir: "/srv/t3",
-                unitPath: "/home/me/.config/systemd/user/t3code.service",
-                logPath: "/home/me/.t3/userdata/logs/boot-service.log",
+                otherBaseDir: "/srv/zharf-code",
+                unitPath: "/home/me/.config/systemd/user/zharf-code.service",
+                logPath: "/home/me/.zharf-code/userdata/logs/boot-service.log",
               }),
               withStopped: (operation) => operation,
               restart: Effect.sync(() => events.push("restart")).pipe(

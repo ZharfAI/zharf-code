@@ -848,7 +848,7 @@ const startServer = Effect.fn("serverMetrics.startServer")(function* (
     // Loose refs on purpose: the soak writes them as files, which a reftable store would ignore.
     ["-c", "init.defaultRefFormat=files", "init", "-q", "-b", "main"],
     ["add", "."],
-    ["-c", "user.email=bench@t3.codes", "-c", "user.name=bench", "commit", "-qm", "init"],
+    ["-c", "user.email=bench@zharf.ai", "-c", "user.name=bench", "commit", "-qm", "init"],
   ]) {
     yield* run("git", args, { cwd: project });
   }
@@ -2129,10 +2129,10 @@ const machineLoad = Effect.gen(function* () {
 );
 
 /** Comm names of the processes that compete with a measured server on a developer's machine. */
-const COMPETING = /^(node|node-MainThread|t3|claude|codex|vite|pnpm)/;
+const COMPETING = /^(node|node-MainThread|zharf-code|claude|codex|vite|pnpm)/;
 
 /**
- * CPU seconds of every node, T3, claude or codex process outside this script's own tree, keyed by
+ * CPU seconds of every node, Zharf Code, claude or codex process outside this script's own tree, keyed by
  * pid and start time so a reused pid is a new process. Linux only; elsewhere none, and the run
  * records only the load average.
  */
@@ -2190,7 +2190,7 @@ const load1 = Effect.gen(function* () {
 
 /**
  * Starts watching the machine for one run; the returned effect reads what competed with it: the
- * highest 1-minute load seen and the cores other T3, node and agent processes kept busy.
+ * highest 1-minute load seen and the cores other Zharf Code, node and agent processes kept busy.
  */
 const watchMachine = Effect.gen(function* () {
   const startedAt = yield* nowMs;

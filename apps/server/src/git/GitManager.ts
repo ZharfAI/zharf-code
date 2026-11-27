@@ -178,7 +178,7 @@ export class GitManager extends Context.Service<
         readonly includeHeadRepository?: boolean;
       },
     ) => Effect.Effect<GitBranchPullRequest | null, GitManagerServiceError>;
-    /** Whether T3 checked this pull request out onto the branch, which ties it to later threads. */
+    /** Whether Zharf Code checked this pull request out onto the branch, which ties it to later threads. */
     readonly checkedOutPullRequest: (input: {
       readonly cwd: string;
       readonly branch: string;
@@ -353,7 +353,7 @@ function resolveHeadRepositoryNameWithOwner(pullRequest: PullRequestHeadRemoteIn
 
 // Both names `resolvePullRequestWorktreeLocalBranchName` gives a fork pull request's branch.
 function isPullRequestWorktreeLocalBranchName(branch: string): boolean {
-  return /^t3code[/-]pr-\d+[/-]/u.test(branch);
+  return /^zharf-code[/-]pr-\d+[/-]/u.test(branch);
 }
 
 function resolvePullRequestWorktreeLocalBranchName(
@@ -373,11 +373,11 @@ function resolvePullRequestWorktreeLocalBranchName(
       .slice(0, -1)
       .some((_, index, segments) => localBranches.has(segments.slice(0, index + 1).join("/"))) &&
     ![...localBranches].some((branch) => branch.startsWith(`${name}/`));
-  const preferred = `t3code/pr-${pullRequest.number}/${suffix}`;
+  const preferred = `zharf-code/pr-${pullRequest.number}/${suffix}`;
   if (isCreatable(preferred)) {
     return preferred;
   }
-  const flat = `t3code-pr-${pullRequest.number}-${suffix.replaceAll("/", "-")}`;
+  const flat = `zharf-code-pr-${pullRequest.number}-${suffix.replaceAll("/", "-")}`;
   for (let attempt = 1; ; attempt++) {
     const candidate = attempt === 1 ? flat : `${flat}-${attempt}`;
     if (isCreatable(candidate)) {
@@ -906,8 +906,8 @@ export const make = Effect.gen(function* () {
         ),
       ),
   );
-  // Hands the base T3 recorded for a branch to the host, whose own tools may keep it elsewhere.
-  // Best-effort: nothing T3 does reads it back from there.
+  // Hands the base Zharf Code recorded for a branch to the host, whose own tools may keep it elsewhere.
+  // Best-effort: nothing Zharf Code does reads it back from there.
   const shareBranchBase = Effect.fn("GitManager.shareBranchBase")(function* (
     cwd: string,
     branch: string,
@@ -2815,7 +2815,7 @@ export const make = Effect.gen(function* () {
     });
     const bodyFile = path.join(
       tempDir,
-      `t3code-pr-body-${process.pid}-${yield* randomUUIDv4(cwd)}.md`,
+      `zharf-code-pr-body-${process.pid}-${yield* randomUUIDv4(cwd)}.md`,
     );
     yield* fileSystem.writeFileString(bodyFile, generated.body).pipe(
       Effect.mapError(
@@ -2973,7 +2973,7 @@ export const make = Effect.gen(function* () {
       preferredName: companion.repository.split("/")[0] || "private",
       url: companion.url,
     });
-    // Recorded before the push, so a later push of this branch, by T3 or by plain `git push`,
+    // Recorded before the push, so a later push of this branch, by Zharf Code or by plain `git push`,
     // goes to the companion too and never publishes the branch.
     yield* gitCore.writeConfigValue({
       cwd,
@@ -3023,7 +3023,7 @@ export const make = Effect.gen(function* () {
     }
     const bodyFile = path.join(
       tempDir,
-      `t3code-pr-body-${process.pid}-${yield* randomUUIDv4(cwd)}.md`,
+      `zharf-code-pr-body-${process.pid}-${yield* randomUUIDv4(cwd)}.md`,
     );
     yield* fileSystem
       .writeFileString(bodyFile, input.body)
@@ -3212,7 +3212,7 @@ export const make = Effect.gen(function* () {
     ) {
       return remembered.value;
     }
-    // invalidateStatus bumps the epoch. A read that started before a T3 git
+    // invalidateStatus bumps the epoch. A read that started before a Zharf Code git
     // action, or before a newer read finished, must not replace their state.
     const epoch = prLookupEpoch(cwd);
     const useMemoized =

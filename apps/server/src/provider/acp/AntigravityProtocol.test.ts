@@ -729,7 +729,7 @@ describe("Antigravity served reads", () => {
       },
     }).update;
 
-  it("credits a read T3 served before the agent announced it", () => {
+  it("credits a read Zharf Code served before the agent announced it", () => {
     const reads = makeAntigravityReadRepair();
     reads.attempted("/repo/a.ts", true);
     const announced = reads.repair({
@@ -795,7 +795,7 @@ describe("Antigravity served reads", () => {
     });
   });
 
-  it("drops agy's toolSummary from T3 MCP call arguments only", () => {
+  it("drops agy's toolSummary from Zharf Code MCP call arguments only", () => {
     const t3Call = normalizeAntigravityToolCall(
       parseToolUpdate(
         normalizeAntigravitySessionUpdate({

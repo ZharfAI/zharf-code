@@ -21,8 +21,8 @@ const status = {
   supported: true,
   installed: true,
   current: true,
-  unitPath: "/home/me/.config/systemd/user/t3code.service",
-  logPath: "/home/me/.t3/userdata/logs/boot-service.log",
+  unitPath: "/home/me/.config/systemd/user/zharf-code.service",
+  logPath: "/home/me/.zharf-code/userdata/logs/boot-service.log",
 } as const;
 
 const newerServiceStatus = { ...status, current: false, installedVersion: "999.0.0" };
@@ -45,8 +45,8 @@ function makeTestService(
       Effect.sync(() => {
         installOptions.push(options);
         return {
-          program: ["/test/t3/runtime/versions/1.0.0/t3", "__service-launcher"],
-          baseDir: "/test/t3",
+          program: ["/test/zharf-code/runtime/versions/1.0.0/zharf-code", "__service-launcher"],
+          baseDir: "/test/zharf-code",
           unitPath: serviceStatus.unitPath,
           logPath: serviceStatus.logPath,
         };
@@ -76,8 +76,8 @@ it.layer(Layer.mergeAll(NodeServices.layer, NetService.layer))("service commands
       {
         command,
         label: "another home's service",
-        status: { ...newerServiceStatus, otherBaseDir: "/srv/t3" },
-        error: { _tag: "BootServiceOtherBaseDirError", installedBaseDir: "/srv/t3" },
+        status: { ...newerServiceStatus, otherBaseDir: "/srv/zharf-code" },
+        error: { _tag: "BootServiceOtherBaseDirError", installedBaseDir: "/srv/zharf-code" },
       },
     ]),
   )(
@@ -159,11 +159,11 @@ it.layer(Layer.mergeAll(NodeServices.layer, NetService.layer))("service commands
     }),
   );
 
-  it.effect("protect refuses root before creating any T3 directories", () =>
+  it.effect("protect refuses root before creating any Zharf Code directories", () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const parent = yield* fs.makeTempDirectoryScoped({ prefix: "t3-service-cli-test-" });
-      const baseDir = `${parent}/t3`;
+      const baseDir = `${parent}/zharf-code`;
       vi.spyOn(BootService, "layer").mockReturnValue(
         Layer.succeed(BootService.BootService, makeTestService(status).service),
       );
@@ -202,7 +202,8 @@ it.layer(Layer.mergeAll(NodeServices.layer, NetService.layer))("service commands
           Layer.succeed(BootService.BootService, service),
         );
         const node = "/home/me/.nvm/versions/node/v26.8.2/bin/node";
-        const script = "/home/me/.nvm/versions/node/v26.8.2/lib/node_modules/t3/dist/bin.mjs";
+        const script =
+          "/home/me/.nvm/versions/node/v26.8.2/lib/node_modules/zharf-code/dist/bin.mjs";
 
         const output = yield* Command.runWith(serviceCommand, { version: packageJson.version })([
           command,
@@ -222,7 +223,7 @@ it.layer(Layer.mergeAll(NodeServices.layer, NetService.layer))("service commands
             ),
           ),
         );
-        expect(output).toContain(`t3@${packageJson.version}`);
+        expect(output).toContain(`zharf-code@${packageJson.version}`);
         expect(output).toContain(script);
         expect(installOptions).toEqual([]);
       }),
@@ -287,8 +288,8 @@ it.layer(Layer.mergeAll(NodeServices.layer, NetService.layer))("service commands
       const baseDir = yield* fs.makeTempDirectoryScoped({ prefix: "t3-service-cli-test-" });
       const { service, uninstalls } = makeTestService({
         ...status,
-        installedBaseDir: input.otherHome ? "/home/me/.t3" : baseDir,
-        ...(input.otherHome ? { otherBaseDir: "/home/me/.t3" } : {}),
+        installedBaseDir: input.otherHome ? "/home/me/.zharf-code" : baseDir,
+        ...(input.otherHome ? { otherBaseDir: "/home/me/.zharf-code" } : {}),
       });
       vi.spyOn(BootService, "layer").mockReturnValue(
         Layer.succeed(
@@ -318,7 +319,7 @@ it.layer(Layer.mergeAll(NodeServices.layer, NetService.layer))("service commands
         ),
       );
       expect(uninstalls).toEqual(input.removed);
-      expect(output).toContain(input.otherHome ? "--base-dir '/home/me/.t3'" : "Removed");
+      expect(output).toContain(input.otherHome ? "--base-dir '/home/me/.zharf-code'" : "Removed");
     }),
   );
 });

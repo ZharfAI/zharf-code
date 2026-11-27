@@ -173,9 +173,12 @@ export function SavedBackendListRow({
       toastManager.add({
         type: "success",
         title: gt("MCP URL copied"),
-        description: gt("Add it to an agent, e.g. claude mcp add --transport http t3 {url}", {
-          url,
-        }),
+        description: gt(
+          "Add it to an agent, e.g. claude mcp add --transport http zharf-code {url}",
+          {
+            url,
+          },
+        ),
       });
     },
     onError: (error) => {
@@ -389,7 +392,7 @@ export function SavedBackendListRow({
           environmentId={environmentId}
           serverLabel={gt("{label} server", {
             label: environment.label,
-            $context: "names a T3 server inside sentences such as {serverLabel} updated",
+            $context: "names a Zharf Code server inside sentences such as {serverLabel} updated",
           })}
           fromVersion={lastDescriptor?.serverVersion}
           targetVersion={APP_VERSION}
@@ -401,7 +404,7 @@ export function SavedBackendListRow({
           environmentId={environmentId}
           serverLabel={gt("{label} server", {
             label: environment.label,
-            $context: "names a T3 server inside sentences such as {serverLabel} updated",
+            $context: "names a Zharf Code server inside sentences such as {serverLabel} updated",
           })}
           selfUpdate={resolveServerSelfUpdateCapability(environment.serverConfig)}
           installation={environment.serverConfig?.environment.capabilities.serverInstallation}
@@ -490,7 +493,7 @@ function CloudLinkSwitch({
   const gt = useGT();
   const control = (
     <Switch
-      aria-label={ariaLabel ?? gt("Enable T3 Connect")}
+      aria-label={ariaLabel ?? gt("Enable Zharf Connect")}
       checked={checked}
       disabled={disabled}
       {...(onCheckedChange ? { onCheckedChange } : {})}
@@ -603,7 +606,7 @@ function ConfiguredCloudLinkRow({
 
   const disabledReason = canManageRelay
     ? null
-    : gt("Your session does not have permission to manage T3 Connect access.");
+    : gt("Your session does not have permission to manage Zharf Connect access.");
   const isBusy = isUpdating || isUpdatingPreference;
   const switchDisabled =
     !canManageRelay ||
@@ -612,7 +615,7 @@ function ConfiguredCloudLinkRow({
     cloudLinkState.isPending ||
     isBusy;
   const configureReason = gt(
-    "This connection needs the relay configuration permission to configure T3 Connect.",
+    "This connection needs the relay configuration permission to configure Zharf Connect.",
   );
   const tunnelNeedsConfigure = needsRelayConfiguration({
     managedTunnel: !managedTunnelActive,
@@ -667,15 +670,15 @@ function ConfiguredCloudLinkRow({
       toastManager.add({
         type: "success",
         title: enabled
-          ? gt("T3 Connect linked")
+          ? gt("Zharf Connect linked")
           : publishAgentActivity
-            ? gt("T3 Connect tunnel disabled")
-            : gt("T3 Connect unlinked"),
+            ? gt("Zharf Connect tunnel disabled")
+            : gt("Zharf Connect unlinked"),
         description: enabled
-          ? gt("This environment is available through T3 Connect.")
+          ? gt("This environment is available through Zharf Connect.")
           : publishAgentActivity
             ? gt("The managed tunnel was removed. Agent activity publishing stays on.")
-            : gt("This environment is no longer available through T3 Connect."),
+            : gt("This environment is no longer available through Zharf Connect."),
       });
     }
     setIsUpdating(false);
@@ -710,7 +713,7 @@ function ConfiguredCloudLinkRow({
         title: enabled ? gt("Webhooks held while offline") : gt("Webhooks no longer held"),
         description: enabled
           ? gt(
-              "T3 Connect keeps webhook requests for up to 24 hours while this environment is offline.",
+              "Zharf Connect keeps webhook requests for up to 24 hours while this environment is offline.",
             )
           : gt(
               "Requests to an offline environment now fail. Anything already held is still delivered.",
@@ -730,24 +733,26 @@ function ConfiguredCloudLinkRow({
               ? connectDenial
               : signedOut
                 ? gt(
-                    "Sign in to make this environment available to your other devices through T3 Connect.",
+                    "Sign in to make this environment available to your other devices through Zharf Connect.",
                   )
                 : linkRevoked
-                  ? gt("This environment was removed from T3 Connect. Turn it on to link it again.")
+                  ? gt(
+                      "This environment was removed from Zharf Connect. Turn it on to link it again.",
+                    )
                   : managedTunnelActive
                     ? reachability?.status === "unreachable"
-                      ? gt("T3 Connect is on, but other devices cannot reach this environment.")
+                      ? gt("Zharf Connect is on, but other devices cannot reach this environment.")
                       : reachability?.status === "reachable"
                         ? gt(
-                            "This environment is available to your other devices through T3 Connect.",
+                            "This environment is available to your other devices through Zharf Connect.",
                           )
-                        : gt("T3 Connect is on. Reachability has not been checked yet.")
+                        : gt("Zharf Connect is on. Reachability has not been checked yet.")
                     : managedTunnelOutOfSync
                       ? gt(
-                          "T3 Connect is out of sync. This environment is linked only to publish agent activity, so other devices cannot connect. Turn T3 Connect on to repair it.",
+                          "Zharf Connect is out of sync. This environment is linked only to publish agent activity, so other devices cannot connect. Turn Zharf Connect on to repair it.",
                         )
                       : gt(
-                          "Make this environment available to your other devices through T3 Connect.",
+                          "Make this environment available to your other devices through Zharf Connect.",
                         )
           }
           status={operationError ?? cloudLinkState.error ?? reachabilityStatus}
@@ -773,13 +778,15 @@ function ConfiguredCloudLinkRow({
         <SettingsRow
           title={setting("t3-connect").title}
           description={gt(
-            "This environment was removed from T3 Connect. Run `t3 connect link` on the host to link it again.",
+            "This environment was removed from Zharf Connect. Run `zharf-code connect link` on the host to link it again.",
           )}
         />
       ) : (
         <SettingsRow
           title={setting("t3-connect").title}
-          description={gt("Run `t3 connect link` on the host, then restart T3 Code there.")}
+          description={gt(
+            "Run `zharf-code connect link` on the host, then restart Zharf Code there.",
+          )}
         />
       )}
       {signedOut && showSwitch ? null : (
@@ -788,7 +795,9 @@ function ConfiguredCloudLinkRow({
           description={
             signedOut
               ? gt("Sign in to send activity to mobile notifications and Live Activities.")
-              : gt("Send activity to mobile notifications and Live Activities without T3 Connect.")
+              : gt(
+                  "Send activity to mobile notifications and Live Activities without Zharf Connect.",
+                )
           }
           managed={connectDenial}
           control={
@@ -810,7 +819,7 @@ function ConfiguredCloudLinkRow({
         <SettingsRow
           title={setting("hold-webhooks-while-offline").title}
           description={gt(
-            "Keep webhook requests for up to 24 hours while this environment is offline, then deliver them. Off: T3 Connect only forwards requests and stores nothing.",
+            "Keep webhook requests for up to 24 hours while this environment is offline, then deliver them. Off: Zharf Connect only forwards requests and stores nothing.",
           )}
           managed={connectDenial}
           control={
@@ -828,12 +837,12 @@ function ConfiguredCloudLinkRow({
         <SettingsRow
           title={setting("connect-device-approval").title}
           description={gt(
-            "Devices that sign in to your T3 Connect account wait until someone already connected here approves them.",
+            "Devices that sign in to your Zharf Connect account wait until someone already connected here approves them.",
           )}
           managed={connectDenial}
           control={
             <CloudLinkSwitch
-              ariaLabel={gt("Require approval for new T3 Connect devices")}
+              ariaLabel={gt("Require approval for new Zharf Connect devices")}
               checked={connectDeviceApproval.required}
               disabled={!connectDeviceApproval.canManage}
               disabledReason={
@@ -874,7 +883,7 @@ export function CloudLinkRow({
   if (!canReadRelay) {
     return (
       <SettingsRow
-        title={gt("T3 Connect")}
+        title={gt("Zharf Connect")}
         description={gt(
           "To edit these settings, pair this connection with both View relay and Manage relay permissions.",
         )}
@@ -904,7 +913,7 @@ function EmptyRemoteEnvironments({ cloudEnabled = true }: { readonly cloudEnable
         <EmptyDescription>
           {cloudEnabled
             ? gt(
-                "Click “Add environment” to pair another environment, or connect one from T3 Connect.",
+                "Click “Add environment” to pair another environment, or connect one from Zharf Connect.",
               )
             : gt("Click “Add environment” to pair another environment.")}
         </EmptyDescription>

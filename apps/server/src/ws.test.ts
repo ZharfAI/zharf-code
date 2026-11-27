@@ -1018,7 +1018,7 @@ it.live.each([
             new WebSocket(
               `${origin}/ws?${ORCHESTRATION_PROTOCOL_QUERY_PARAM}=${ORCHESTRATION_PROTOCOL_VERSION}${framed ? `&${SOCKET_FRAME_PARTS_QUERY_PARAM}=1` : ""}`,
               {
-                origin: "t3code://app",
+                origin: "zharfcode://app",
               },
             ),
         ),
@@ -1783,13 +1783,13 @@ it.effect("a missing thread worktree gets its project's skills in the cwd snapsh
     yield* fileSystem.makeDirectory(path.dirname(skillPath), { recursive: true });
     yield* fileSystem.writeFileString(skillPath, "---\nname: finalize\n---\n");
     // Removed with `git worktree remove`; only the next turn start recreates it.
-    const worktreePath = path.join(serverConfig.worktreesDir, "proj", "t3-6f94fb95");
+    const worktreePath = path.join(serverConfig.worktreesDir, "proj", "zharf-6f94fb95");
     const thread = {
       id: ThreadId.make("thread:worktree"),
       projectId,
       archivedAt: null,
       worktreePath,
-      branch: "t3/reply-ok",
+      branch: "zharf/reply-ok",
     } as unknown as OrchestrationV2ThreadShell;
     const project = {
       id: projectId,

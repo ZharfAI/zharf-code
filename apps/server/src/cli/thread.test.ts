@@ -731,16 +731,16 @@ it.live("resolves a path inside a git worktree of the project's repository to th
     const path = yield* Path.Path;
     const root = yield* fileSystem.makeTempDirectoryScoped({ prefix: "t3-thread-worktree-" });
     const repo = path.join(root, "sample");
-    const worktree = path.join(root, "worktrees", "sample", "t3-8ff64c24");
+    const worktree = path.join(root, "worktrees", "sample", "zharf-8ff64c24");
     const feature = path.join(root, "wt", "feature");
-    const featureWorktree = path.join(root, "worktrees", "feature", "t3-1a2b3c4d");
+    const featureWorktree = path.join(root, "worktrees", "feature", "zharf-1a2b3c4d");
     yield* fileSystem.makeDirectory(path.join(repo, "pkg"), { recursive: true });
     yield* fileSystem.writeFileString(path.join(repo, "pkg", "index.ts"), "export {};\n");
     yield* git(repo, ["init", "--quiet", "-b", "main"]);
     yield* commitAll(repo);
-    yield* git(repo, ["worktree", "add", "--quiet", "-b", "t3/8ff64c24", worktree]);
+    yield* git(repo, ["worktree", "add", "--quiet", "-b", "zharf/8ff64c24", worktree]);
     yield* git(repo, ["worktree", "add", "--quiet", "-b", "feature", feature]);
-    yield* git(feature, ["worktree", "add", "--quiet", "-b", "t3/1a2b3c4d", featureWorktree]);
+    yield* git(feature, ["worktree", "add", "--quiet", "-b", "zharf/1a2b3c4d", featureWorktree]);
 
     const project = (id: string, workspaceRoot: string) => ({
       id: ProjectId.make(id),

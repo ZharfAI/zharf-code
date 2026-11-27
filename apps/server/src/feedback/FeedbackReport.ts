@@ -12,7 +12,9 @@ export const FEEDBACK_TRACE_TURNS = 5;
 
 const reportFields = {
   kind: AgentFeedbackKind,
-  subject: Schema.String.annotate({ description: "T3 tool name, `t3` command, or `general`." }),
+  subject: Schema.String.annotate({
+    description: "Zharf Code tool name, `zharf-code` command, or `general`.",
+  }),
   expected: FeedbackText,
   actual: FeedbackText,
   workaround: FeedbackText.annotate({ description: "What you did instead, or empty." }),
@@ -66,7 +68,7 @@ export const FeedbackAwaitingApproval = Schema.Struct({
 export type FeedbackAwaitingApproval = typeof FeedbackAwaitingApproval.Type;
 
 export const FEEDBACK_OFF_MESSAGE =
-  "Agent feedback is off. Turn it on in T3 Code under Settings > Labs, then try again.";
+  "Agent feedback is off. Turn it on in Zharf Code under Settings > Labs, then try again.";
 
 export class FeedbackOffError extends Schema.TaggedError<FeedbackOffError>()(
   "FeedbackOffError",
@@ -81,7 +83,7 @@ export type FeedbackSource = "mcp" | "cli";
 
 // Requested reports count when their card is shown, unprompted ones when stored.
 export const MAX_REPORTS_PER_TURN = 3;
-// Reports from no turn, such as `t3 feedback`, have no turn to count in.
+// Reports from no turn, such as `zharf-code feedback`, have no turn to count in.
 export const MAX_REPORTS_OUTSIDE_TURNS_PER_HOUR = 10;
 
 export class FeedbackLimitError extends Schema.TaggedError<FeedbackLimitError>()(
@@ -120,104 +122,104 @@ export class FeedbackStorageError extends Schema.TaggedError<FeedbackStorageErro
   }
 }
 
-/** The MCP client label `t3 feedback` signs in with, so its reports count as `cli`. */
-export const FEEDBACK_CLI_CLIENT_LABEL = "t3 feedback cli";
+/** The MCP client label `zharf-code feedback` signs in with, so its reports count as `cli`. */
+export const FEEDBACK_CLI_CLIENT_LABEL = "zharf-code feedback cli";
 
-/** Listed `t3` command paths a report may name. A CLI test keeps this in step with binCli. */
+/** Listed `zharf-code` command paths a report may name. A CLI test keeps this in step with binCli. */
 export const T3_CLI_COMMANDS: ReadonlyArray<string> = [
-  "t3",
-  "t3 help",
-  "t3 serve",
-  "t3 app",
-  "t3 pair",
-  "t3 auth",
-  "t3 auth connect-device",
-  "t3 auth connect-device approve",
-  "t3 auth connect-device list",
-  "t3 auth connect-device revoke",
-  "t3 auth pairing",
-  "t3 auth pairing create",
-  "t3 auth pairing list",
-  "t3 auth pairing revoke",
-  "t3 auth session",
-  "t3 auth session issue",
-  "t3 auth session list",
-  "t3 auth session revoke",
-  "t3 environment",
-  "t3 environment link",
-  "t3 environment list",
-  "t3 environment unlink",
-  "t3 browser",
-  "t3 browser setup",
-  "t3 project",
-  "t3 project add",
-  "t3 project remove",
-  "t3 project rename",
-  "t3 thread",
-  "t3 thread list",
-  "t3 thread start",
-  "t3 thread send",
-  "t3 thread show",
-  "t3 feedback",
-  "t3 feedback list",
-  "t3 workflow",
-  "t3 workflow start",
-  "t3 workflow list",
-  "t3 workflow show",
-  "t3 workflow resume",
-  "t3 workflow cancel",
-  "t3 workflow signal",
-  "t3 workflow withdraw",
-  "t3 workflow questions",
-  "t3 workflow hooks",
-  "t3 workflow store",
-  "t3 workflow store list",
-  "t3 workflow store set",
-  "t3 workflow store delete",
-  "t3 up",
-  "t3 status",
-  "t3 service",
-  "t3 service install",
-  "t3 service restart",
-  "t3 service uninstall",
-  "t3 service status",
-  "t3 service protect",
-  "t3 update",
-  "t3 install",
-  "t3 uninstall",
-  "t3 theme",
-  "t3 theme set",
-  "t3 theme clear",
-  "t3 theme show",
-  "t3 trace",
-  "t3 trace summary",
-  "t3 doctor",
-  "t3 policy",
-  "t3 policy show",
-  "t3 policy check",
-  "t3 policy templates",
-  "t3 policy settings",
-  "t3 triage",
-  "t3 connect",
-  "t3 connect link",
-  "t3 connect login",
-  "t3 connect logout",
-  "t3 connect publish",
-  "t3 connect status",
-  "t3 connect unlink",
+  "zharf-code",
+  "zharf-code help",
+  "zharf-code serve",
+  "zharf-code app",
+  "zharf-code pair",
+  "zharf-code auth",
+  "zharf-code auth connect-device",
+  "zharf-code auth connect-device approve",
+  "zharf-code auth connect-device list",
+  "zharf-code auth connect-device revoke",
+  "zharf-code auth pairing",
+  "zharf-code auth pairing create",
+  "zharf-code auth pairing list",
+  "zharf-code auth pairing revoke",
+  "zharf-code auth session",
+  "zharf-code auth session issue",
+  "zharf-code auth session list",
+  "zharf-code auth session revoke",
+  "zharf-code environment",
+  "zharf-code environment link",
+  "zharf-code environment list",
+  "zharf-code environment unlink",
+  "zharf-code browser",
+  "zharf-code browser setup",
+  "zharf-code project",
+  "zharf-code project add",
+  "zharf-code project remove",
+  "zharf-code project rename",
+  "zharf-code thread",
+  "zharf-code thread list",
+  "zharf-code thread start",
+  "zharf-code thread send",
+  "zharf-code thread show",
+  "zharf-code feedback",
+  "zharf-code feedback list",
+  "zharf-code workflow",
+  "zharf-code workflow start",
+  "zharf-code workflow list",
+  "zharf-code workflow show",
+  "zharf-code workflow resume",
+  "zharf-code workflow cancel",
+  "zharf-code workflow signal",
+  "zharf-code workflow withdraw",
+  "zharf-code workflow questions",
+  "zharf-code workflow hooks",
+  "zharf-code workflow store",
+  "zharf-code workflow store list",
+  "zharf-code workflow store set",
+  "zharf-code workflow store delete",
+  "zharf-code up",
+  "zharf-code status",
+  "zharf-code service",
+  "zharf-code service install",
+  "zharf-code service restart",
+  "zharf-code service uninstall",
+  "zharf-code service status",
+  "zharf-code service protect",
+  "zharf-code update",
+  "zharf-code install",
+  "zharf-code uninstall",
+  "zharf-code theme",
+  "zharf-code theme set",
+  "zharf-code theme clear",
+  "zharf-code theme show",
+  "zharf-code trace",
+  "zharf-code trace summary",
+  "zharf-code doctor",
+  "zharf-code policy",
+  "zharf-code policy show",
+  "zharf-code policy check",
+  "zharf-code policy templates",
+  "zharf-code policy settings",
+  "zharf-code triage",
+  "zharf-code connect",
+  "zharf-code connect link",
+  "zharf-code connect login",
+  "zharf-code connect logout",
+  "zharf-code connect publish",
+  "zharf-code connect status",
+  "zharf-code connect unlink",
 ];
 
 export type FeedbackInput = typeof FeedbackInput.Type;
 export type FeedbackReport = typeof FeedbackReport.Type;
 
 export const FEEDBACK_SUBJECT_MESSAGE =
-  "Set subject to the exact T3 tool name, the t3 command, or `general`.";
+  "Set subject to the exact Zharf Code tool name, the zharf-code command, or `general`.";
 
 // The shared resolver knows the presented tools; the prefix covers the rest, such as these.
-// Codex also registers `t3-code-direct` for T3 tools it keeps out of Code Mode.
+// Codex also registers `t3-code-direct` for Zharf Code tools it keeps out of Code Mode.
 const T3_PREFIX = /^(?:mcp__t3[-_]?code(?:[-_]direct)?__|t3[-_]?code(?:[-_]direct)?[.:/])/iu;
 
-/** The bare name of a registered T3 tool however a provider prefixed it, else undefined. */
+/** The bare name of a registered Zharf Code tool however a provider prefixed it, else undefined. */
 export const resolveT3ToolName = (name: string, toolNames: ReadonlyArray<string>) => {
   const tool = resolveT3McpToolId(name) ?? name.replace(T3_PREFIX, "");
   if (toolNames.includes(tool)) return tool;
@@ -228,7 +230,7 @@ export const resolveT3ToolName = (name: string, toolNames: ReadonlyArray<string>
     .toSorted((a, b) => b.length - a.length)[0];
 };
 
-/** The stored subject, or undefined when the value names no T3 tool, `t3` command, or `general`. */
+/** The stored subject, or undefined when the value names no Zharf Code tool, `zharf-code` command, or `general`. */
 export const resolveFeedbackSubject = (value: string, toolNames: ReadonlyArray<string>) => {
   const subject = value.trim();
   if (subject === "general" || T3_CLI_COMMANDS.includes(subject)) return subject;

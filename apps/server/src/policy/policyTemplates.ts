@@ -53,7 +53,7 @@ const policies = (): ReadonlyArray<Policy> => [
   {
     id: "Organization",
     title: "Organization",
-    help: 'Required whenever any other T3 Code policy is set: T3 Code will not start with policies that do not name an organization.\n\nUsers see the name as "Managed by <organization>" beside every control the policy locks. The support URL is optional.',
+    help: 'Required whenever any other Zharf Code policy is set: Zharf Code will not start with policies that do not name an organization.\n\nUsers see the name as "Managed by <organization>" beside every control the policy locks. The support URL is optional.',
     elements: [
       { kind: "text", name: "Organization", label: "Organization name" },
       { kind: "text", name: "SupportUrl", label: "Support URL (optional)" },
@@ -76,7 +76,7 @@ const policies = (): ReadonlyArray<Policy> => [
   {
     id: "Clients",
     title: "Allowed clients",
-    help: "What may connect to T3 Code on this machine.\n\nWithout Remote, T3 Code only listens on this machine, does not create pairing links, signs out devices that paired earlier, and turns T3 Connect off. Check at least one client.\n\nDisabled or Not Configured: no restriction.",
+    help: "What may connect to Zharf Code on this machine.\n\nWithout Remote, Zharf Code only listens on this machine, does not create pairing links, signs out devices that paired earlier, and turns Zharf Connect off. Check at least one client.\n\nDisabled or Not Configured: no restriction.",
     elements: [
       {
         kind: "checkbox",
@@ -96,15 +96,15 @@ const policies = (): ReadonlyArray<Policy> => [
         kind: "checkbox",
         list: "Clients",
         name: "remote",
-        label: "Remote: phones, other computers, app.t3.codes",
+        label: "Remote: phones, other computers, code.zharf.ai",
         defaultChecked: false,
       },
     ],
   },
   {
     id: "Connect",
-    title: "Allow T3 Connect",
-    help: "Disabled turns T3 Connect off and unlinks this machine. Other remote access still follows Allowed clients.\n\nEnabled or Not Configured leaves T3 Connect available.",
+    title: "Allow Zharf Connect",
+    help: "Disabled turns Zharf Connect off and unlinks this machine. Other remote access still follows Allowed clients.\n\nEnabled or Not Configured leaves Zharf Connect available.",
     toggle: "Connect",
   },
   {
@@ -116,25 +116,25 @@ const policies = (): ReadonlyArray<Policy> => [
   {
     id: "BrowserCookieImport",
     title: "Allow importing browser cookies",
-    help: "Disabled stops users from importing cookies from another browser into T3 Code's browser.",
+    help: "Disabled stops users from importing cookies from another browser into Zharf Code's browser.",
     toggle: "BrowserCookieImport",
   },
   {
     id: "PreviewTunnel",
     title: "Allow the preview tunnel",
-    help: "Disabled stops other devices from opening this machine's local servers through T3 Code: no in-app browser tabs loaded on the device, no Open on this device, no port forwarding. Browser tabs still stream from this machine.",
+    help: "Disabled stops other devices from opening this machine's local servers through Zharf Code: no in-app browser tabs loaded on the device, no Open on this device, no port forwarding. Browser tabs still stream from this machine.",
     toggle: "PreviewTunnel",
   },
   {
     id: "WorktreeLayoutCommands",
     title: "Allow project worktree layout commands",
-    help: "Disabled stops T3 Code from running the worktreeLayout commands a project's t3.json declares, whether or not a user approved them. Such a project gets no new worktree threads; existing thread folders are restored and removed without the project's commands.",
+    help: "Disabled stops Zharf Code from running the worktreeLayout commands a project's t3.json declares, whether or not a user approved them. Such a project gets no new worktree threads; existing thread folders are restored and removed without the project's commands.",
     toggle: "WorktreeLayoutCommands",
   },
   {
     id: "Telemetry",
     title: "Allow usage data",
-    help: "Disabled stops T3 Code from sending product usage data and relay connection traces. Enabled cannot turn them on for a user who turned them off.",
+    help: "Disabled stops Zharf Code from sending product usage data and relay connection traces. Enabled cannot turn them on for a user who turned them off.",
     toggle: "Telemetry",
   },
   {
@@ -152,7 +152,7 @@ const policies = (): ReadonlyArray<Policy> => [
   {
     id: "Updates",
     title: "Updates",
-    help: "Off stops T3 Code from checking for updates, for machines that receive T3 Code through device management.\n\nA feed URL makes the desktop app update from your own mirror of the release feed instead of GitHub; it must be https. Unchecking nightly makes the nightly channel unavailable.\n\nDisabled or Not Configured: no restriction.",
+    help: "Off stops Zharf Code from checking for updates, for machines that receive Zharf Code through device management.\n\nA feed URL makes the desktop app update from your own mirror of the release feed instead of GitHub; it must be https. Unchecking nightly makes the nightly channel unavailable.\n\nDisabled or Not Configured: no restriction.",
     elements: [
       {
         kind: "enum",
@@ -176,13 +176,13 @@ const policies = (): ReadonlyArray<Policy> => [
   {
     id: "Settings",
     title: "Managed settings (JSON)",
-    help: 'Defaults and locks for server settings, as the "settings" object of a T3 Code policy. Each key is a setting path; each value is {"value": ..., "locked": true|false}.\n\nExample: {"enableAgentBrowserAccess": {"value": false, "locked": true}}\n\nRun "t3 policy check" on a policy file with the same object to validate it first.',
+    help: 'Defaults and locks for server settings, as the "settings" object of a Zharf Code policy. Each key is a setting path; each value is {"value": ..., "locked": true|false}.\n\nExample: {"enableAgentBrowserAccess": {"value": false, "locked": true}}\n\nRun "zharf-code policy check" on a policy file with the same object to validate it first.',
     elements: [{ kind: "text", name: "Settings", label: "Settings JSON", json: true }],
   },
   {
     id: "ProviderInstances",
     title: "Provider settings (JSON)",
-    help: 'Fields set on every instance of a provider, as the "limits.providers.instances" object of a T3 Code policy: environment variables, binaryPath, launchArgs.\n\nExample: {"claudeAgent": {"locked": true, "environment": [{"name": "CLAUDE_CODE_USE_BEDROCK", "value": "1"}]}}\n\nEvery user on the machine can read this value, so do not put credentials in it.',
+    help: 'Fields set on every instance of a provider, as the "limits.providers.instances" object of a Zharf Code policy: environment variables, binaryPath, launchArgs.\n\nExample: {"claudeAgent": {"locked": true, "environment": [{"name": "CLAUDE_CODE_USE_BEDROCK", "value": "1"}]}}\n\nEvery user on the machine can read this value, so do not put credentials in it.',
     elements: [
       { kind: "text", name: "ProviderInstances", label: "Provider settings JSON", json: true },
     ],
@@ -249,7 +249,7 @@ export function windowsAdmx(): string {
   return `<?xml version="1.0" encoding="utf-8"?>
 <policyDefinitions xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" revision="1.0" schemaVersion="1.0" xmlns="http://schemas.microsoft.com/GroupPolicy/2006/07/PolicyDefinitions">
   <policyNamespaces>
-    <target prefix="t3code" namespace="T3Tools.Policies.T3Code" />
+    <target prefix="zharfcode" namespace="ZharfAI.Policies.ZharfCode" />
   </policyNamespaces>
   <resources minRequiredRevision="1.0" />
   <supportedOn>
@@ -282,8 +282,8 @@ const presentationElement = (element: Element) => {
 /** The en-US strings and dialog layouts for `windowsAdmx`. */
 export function windowsAdml(): string {
   const strings: Array<readonly [string, string]> = [
-    ["T3Code", "T3 Code"],
-    ["SUPPORTED_T3Code", "T3 Code with managed policy support"],
+    ["T3Code", "Zharf Code"],
+    ["SUPPORTED_T3Code", "Zharf Code with managed policy support"],
   ];
   const presentations: Array<string> = [];
   for (const policy of policies()) {
@@ -303,8 +303,8 @@ export function windowsAdml(): string {
   }
   return `<?xml version="1.0" encoding="utf-8"?>
 <policyDefinitionResources xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" revision="1.0" schemaVersion="1.0" xmlns="http://schemas.microsoft.com/GroupPolicy/2006/07/PolicyDefinitions">
-  <displayName>T3 Code</displayName>
-  <description>Policies for T3 Code</description>
+  <displayName>Zharf Code</displayName>
+  <description>Policies for Zharf Code</description>
   <resources>
     <stringTable>
 ${strings.map(([id, text]) => `      <string id="${id}">${escapeXml(text)}</string>`).join("\n")}
@@ -349,7 +349,7 @@ const nullPath = (
   return undefined;
 };
 
-/** A device configuration profile that installs `document` for `com.t3tools.t3code`. */
+/** A device configuration profile that installs `document` for `ai.zharf.code`. */
 export function macosProfile(
   document: ManagedPolicyDocument,
   uuids: { readonly profile: string; readonly payload: string },
@@ -369,17 +369,17 @@ export function macosProfile(
   const profile = {
     PayloadContent: [
       {
-        PayloadDisplayName: "T3 Code policy",
-        PayloadIdentifier: `com.t3tools.t3code.policy.${uuids.payload}`,
-        PayloadType: "com.t3tools.t3code",
+        PayloadDisplayName: "Zharf Code policy",
+        PayloadIdentifier: `ai.zharf.code.policy.${uuids.payload}`,
+        PayloadType: "ai.zharf.code",
         PayloadUUID: uuids.payload,
         PayloadVersion: 1,
         ...document,
       },
     ],
-    PayloadDescription: "Configures T3 Code for every user on this Mac.",
-    PayloadDisplayName: `T3 Code policy for ${document.organization}`,
-    PayloadIdentifier: `com.t3tools.t3code.policy`,
+    PayloadDescription: "Configures Zharf Code for every user on this Mac.",
+    PayloadDisplayName: `Zharf Code policy for ${document.organization}`,
+    PayloadIdentifier: `ai.zharf.code.policy`,
     PayloadOrganization: document.organization,
     PayloadScope: "System",
     PayloadType: "Configuration",

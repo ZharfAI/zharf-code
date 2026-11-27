@@ -12,9 +12,9 @@ function snapshot(overrides: Partial<WorktreeSetupSnapshot>): WorktreeSetupSnaps
     phase: "running",
     startedAt: "2026-10-26T12:00:00.000Z",
     endedAt: null,
-    branch: "t3/feature",
+    branch: "zharf/feature",
     baseRef: "main",
-    worktreePath: "/repo/.t3/worktrees/feature",
+    worktreePath: "/repo/.zharf-code/worktrees/feature",
     setupScript: null,
     stages: [
       {

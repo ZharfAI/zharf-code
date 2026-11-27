@@ -26,15 +26,20 @@ describe("OtelEnvironment", () => {
       disabled: false,
       warnings: [specIgnored("1")],
     },
-    { name: "t3 1", env: { T3CODE_OTEL_SDK_DISABLED: "1" }, disabled: true, warnings: [T3_OFF] },
     {
-      name: "t3 false overrides spec true",
+      name: "zharf-code 1",
+      env: { T3CODE_OTEL_SDK_DISABLED: "1" },
+      disabled: true,
+      warnings: [T3_OFF],
+    },
+    {
+      name: "zharf-code false overrides spec true",
       env: { T3CODE_OTEL_SDK_DISABLED: "false", OTEL_SDK_DISABLED: "true" },
       disabled: false,
       warnings: [],
     },
     {
-      name: "unreadable t3 warns and falls through",
+      name: "unreadable zharf-code warns and falls through",
       env: { T3CODE_OTEL_SDK_DISABLED: "maybe", OTEL_SDK_DISABLED: "true" },
       disabled: true,
       warnings: ["T3CODE_OTEL_SDK_DISABLED=maybe is not a yes or a no and was ignored", SPEC_OFF],
@@ -241,7 +246,7 @@ describe("OtelEnvironment", () => {
   describe("resolveSignalEndpoint", () => {
     const t3Export = {
       protocol: "http/json",
-      headers: { "x-key": "t3" },
+      headers: { "x-key": "zharf-code" },
       exportIntervalMs: 5_000,
     } as const;
     const withLogs = (logs: OtelEnvironment.OtelSignal, disabled = false) => ({
@@ -259,9 +264,9 @@ describe("OtelEnvironment", () => {
       {
         name: "T3CODE_OTLP_*_URL wins over a signal the OTEL variables turned off",
         otel: withLogs(OtelEnvironment.OtelSignal.Off()),
-        t3Url: "http://t3:4318/v1/logs",
+        t3Url: "http://zharf-code:4318/v1/logs",
         expected: {
-          url: "http://t3:4318/v1/logs",
+          url: "http://zharf-code:4318/v1/logs",
           export: t3Export,
           source: "environment" as const,
           variable: "T3CODE_OTLP_LOGS_URL",
@@ -367,7 +372,7 @@ describe("OtelEnvironment", () => {
           ConfigProvider.fromEnv({ env: { OTEL_RESOURCE_ATTRIBUTES: raw } }),
         );
         const otel = yield* OtelEnvironment.load.pipe(Effect.provide(layerEnv));
-        const resource = yield* OtlpResource.fromConfig({ serviceName: "t3" }).pipe(
+        const resource = yield* OtlpResource.fromConfig({ serviceName: "zharf-code" }).pipe(
           Effect.provide(
             Layer.provide(
               OtelEnvironment.layerResourceAttributes(otel.resourceAttributes),
@@ -400,7 +405,7 @@ describe("isCiEnvironment", () => {
 });
 
 describe("isRelayTracingEnabled", () => {
-  it("turns off for DO_NOT_TRACK, even when T3 telemetry is on", () => {
+  it("turns off for DO_NOT_TRACK, even when Zharf Code telemetry is on", () => {
     assert.isFalse(OtelEnvironment.isRelayTracingEnabled({ DO_NOT_TRACK: "1" }));
     assert.isFalse(
       OtelEnvironment.isRelayTracingEnabled({

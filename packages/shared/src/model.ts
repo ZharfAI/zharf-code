@@ -130,7 +130,7 @@ export function draftModelPickMatchesThread(pick: ModelSelection, thread: ModelS
   return modelSelectionsEqual(withoutFastModeOff(pick), withoutFastModeOff(thread));
 }
 
-/** Cursor ACP can default Fast to true; T3 requires a user selection. */
+/** Cursor ACP can default Fast to true; Zharf Code requires a user selection. */
 export function withImplicitFastModeDefault(
   caps: ModelCapabilities,
   modelOptions: ReadonlyArray<ProviderOptionSelection> | null | undefined,
@@ -285,7 +285,7 @@ export function getProviderOptionStatedValue(
 }
 
 /** The variant choice that sends no variant; distinct from any variant name a provider defines. */
-export const DEFAULT_VARIANT_CHOICE_ID = "t3:default";
+export const DEFAULT_VARIANT_CHOICE_ID = "zharf-code:default";
 
 export function getProviderOptionCurrentValue(
   descriptor: ProviderOptionDescriptor | null | undefined,

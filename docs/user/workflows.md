@@ -1,21 +1,21 @@
 # Workflows
 
-A workflow is a TypeScript script that chains agents, plain code, schedules, webhooks, issue and pull request events, and questions to you into one durable run that survives server restarts. Each step's result is saved when it succeeds, so restarts pick up where the run left off and failures do not lose earlier work. Workflows are an early feature: start runs from the `t3` CLI or a trigger, and follow them in the app.
+A workflow is a TypeScript script that chains agents, plain code, schedules, webhooks, issue and pull request events, and questions to you into one durable run that survives server restarts. Each step's result is saved when it succeeds, so restarts pick up where the run left off and failures do not lose earlier work. Workflows are an early feature: start runs from the `zharf-code` CLI or a trigger, and follow them in the app.
 
 For one prompt on a timer or webhook, use a scheduled task. Use a workflow when work has stages — such as triage, a fix, your approval, and a release.
 
 ## Turn on workflows
 
-Workflows are a Labs feature, off by default. Turn on **Settings → Labs → Workflows** for the server that runs them. On a server without a desktop, set `"workflowsEnabled": true` in `userdata/settings.json` in its T3 home (`~/.t3` by default). While off, nothing in the workflows folder runs and `t3 workflow` says how to turn it on; runs are kept and continue once it is on again.
+Workflows are a Labs feature, off by default. Turn on **Settings → Labs → Workflows** for the server that runs them. On a server without a desktop, set `"workflowsEnabled": true` in `userdata/settings.json` in its Zharf Code home (`~/.zharf-code` by default). While off, nothing in the workflows folder runs and `zharf-code workflow` says how to turn it on; runs are kept and continue once it is on again.
 
 ## Create a workflow
 
-Workflow files live in `~/.t3/workflows/` (or wherever `T3CODE_WORKFLOWS` points — a folder or a single file). The server watches the folder and reloads changes without a restart.
+Workflow files live in `~/.zharf-code/workflows/` (or wherever `T3CODE_WORKFLOWS` points — a folder or a single file). The server watches the folder and reloads changes without a restart.
 
-- **Ask an agent (recommended):** copy the [`t3-workflows` skill](https://github.com/pingdotgg/t3code/blob/main/skills/t3-workflows/SKILL.md) into your agent's skills folder (such as `~/.claude/skills/` or `~/.agents/skills/`) and describe what you want.
-- **Edit directly:** edit files in `~/.t3/workflows/`, or use **Definitions** on the Workflows page (saving and deleting in the app require terminal access). Before anything has run, open the page with **Open workflows** in the command palette.
+- **Ask an agent (recommended):** copy the [`t3-workflows` skill](https://github.com/zharfai/zharf-code/blob/main/skills/t3-workflows/SKILL.md) into your agent's skills folder (such as `~/.claude/skills/` or `~/.agents/skills/`) and describe what you want.
+- **Edit directly:** edit files in `~/.zharf-code/workflows/`, or use **Definitions** on the Workflows page (saving and deleting in the app require terminal access). Before anything has run, open the page with **Open workflows** in the command palette.
 
-A small workflow, saved as `~/.t3/workflows/release.ts`:
+A small workflow, saved as `~/.zharf-code/workflows/release.ts`:
 
 ```ts
 const { workflow, step, ask, stop, title } = T3;
@@ -36,7 +36,7 @@ export default workflow(
 );
 ```
 
-Start it with `t3 workflow start release --input '{"name":"v1.4"}' --key v1.4`, then answer its question in the app. `T3`, `Effect`, `Schema` and `Option` are provided; a workflow file imports nothing from T3 or Effect. Name files with letters, digits, `-`, `_` and `.`; other names are skipped with a warning.
+Start it with `zharf-code workflow start release --input '{"name":"v1.4"}' --key v1.4`, then answer its question in the app. `T3`, `Effect`, `Schema` and `Option` are provided; a workflow file imports nothing from Zharf Code or Effect. Name files with letters, digits, `-`, `_` and `.`; other names are skipped with a warning.
 
 Saving checks that the file loads, does not duplicate a workflow name and version, and does not remove a version with unfinished runs. A file that fails these checks keeps its last working version while the Workflows page (and the server log) shows why; other files are not affected. A change held back by unfinished runs goes in by itself once those runs end or are cancelled. Mistakes inside a workflow body surface when a run hits them and pauses. To change steps while runs are unfinished, add the new body under a higher `version` and keep the old one until those runs end.
 
@@ -45,21 +45,21 @@ Dot-files and subfolders are ignored. Keep shared helpers in a subfolder and res
 ## Start and steer
 
 ```sh
-t3 workflow start <name> --input '<json>' --key <key>
-t3 workflow list [--status paused] [--tag <tag>]
-t3 workflow show <run>
-t3 workflow resume <run>
-t3 workflow cancel <run> [--reason '<why>']
-t3 workflow questions [--kind <kind>]
-t3 workflow signal '{"choice":"yes"}' --run <run> --wait <name>
-t3 workflow signal '<json>' --workflow <name> --channel <channel>
-t3 workflow withdraw --run <run> --wait <name> [--reason '<why>']
-t3 workflow hooks
-t3 workflow store list
-t3 workflow store set <key> '<json>'
+zharf-code workflow start <name> --input '<json>' --key <key>
+zharf-code workflow list [--status paused] [--tag <tag>]
+zharf-code workflow show <run>
+zharf-code workflow resume <run>
+zharf-code workflow cancel <run> [--reason '<why>']
+zharf-code workflow questions [--kind <kind>]
+zharf-code workflow signal '{"choice":"yes"}' --run <run> --wait <name>
+zharf-code workflow signal '<json>' --workflow <name> --channel <channel>
+zharf-code workflow withdraw --run <run> --wait <name> [--reason '<why>']
+zharf-code workflow hooks
+zharf-code workflow store list
+zharf-code workflow store set <key> '<json>'
 ```
 
-Every start needs a `--key`: starting twice with the same key returns the same run — even after a version bump — so retries do not duplicate work. Use `signal` with `--run` and `--wait` to answer a question or wake a run, or with `--workflow` and `--channel` to wake whichever run waits on that channel. A signal for a question that is no longer open is kept for a later wait rather than refused, so check `t3 workflow questions` first. Use `withdraw` when a question no longer needs an answer: its `ask` returns `None`, as on a timeout, and the run goes on; the step records who withdrew it and why. A workflow does the same from a step with `withdraw({ run, name, reason })`. Use `store` to read or change state kept between runs.
+Every start needs a `--key`: starting twice with the same key returns the same run — even after a version bump — so retries do not duplicate work. Use `signal` with `--run` and `--wait` to answer a question or wake a run, or with `--workflow` and `--channel` to wake whichever run waits on that channel. A signal for a question that is no longer open is kept for a later wait rather than refused, so check `zharf-code workflow questions` first. Use `withdraw` when a question no longer needs an answer: its `ask` returns `None`, as on a timeout, and the run goes on; the step records who withdrew it and why. A workflow does the same from a step with `withdraw({ run, name, reason })`. Use `store` to read or change state kept between runs.
 
 ## Kinds of question and tags
 
@@ -86,7 +86,7 @@ workflow(
 );
 ```
 
-Under **Needs you**, a picker then shows each kind with how many questions of it are open, and **Other** for the rest; your pick is remembered on that device. A question whose kind is not in the workflow's own `asks` is asked like any other and shows under **Other**, as do questions asked without a kind. `t3 workflow questions --kind feature` lists the questions asked with exactly that kind from the CLI.
+Under **Needs you**, a picker then shows each kind with how many questions of it are open, and **Other** for the rest; your pick is remembered on that device. A question whose kind is not in the workflow's own `asks` is asked like any other and shows under **Other**, as do questions asked without a kind. `zharf-code workflow questions --kind feature` lists the questions asked with exactly that kind from the CLI.
 
 ## Choices, reasons and links
 
@@ -104,15 +104,15 @@ yield *
   });
 ```
 
-The app asks for the reason before it sends a choice that requires one, and `t3 workflow signal` refuses that choice without a `reason`. Links open in your browser and are part of `t3 workflow questions --json`. The answer also records when it was given and who sent it (`answeredAt`, `answeredBy`): the device's name as **Connections** lists it, the tool that sent it, or for `t3 workflow signal` run by an agent, that agent's thread. What a signal's own value says for these is ignored; a signal sent before its question opens answers it as whoever sent it, at the time it was received. The run shows both on the question's step, and says **You** only in the session that gave the answer; every other session, even another one on the same device, sees that device's name.
+The app asks for the reason before it sends a choice that requires one, and `zharf-code workflow signal` refuses that choice without a `reason`. Links open in your browser and are part of `zharf-code workflow questions --json`. The answer also records when it was given and who sent it (`answeredAt`, `answeredBy`): the device's name as **Connections** lists it, the tool that sent it, or for `zharf-code workflow signal` run by an agent, that agent's thread. What a signal's own value says for these is ignored; a signal sent before its question opens answers it as whoever sent it, at the time it was received. The run shows both on the question's step, and says **You** only in the session that gave the answer; every other session, even another one on the same device, sees that device's name.
 
-`tags([...])` labels a run for `t3 workflow list --tag backlog`, whether or not it waits on anyone.
+`tags([...])` labels a run for `zharf-code workflow list --tag backlog`, whether or not it waits on anyone.
 
 ## Triggers
 
 - **Schedules:** `every` runs on an interval, starting one interval after the workflow loads; `daily` runs at a local time of day (a time missed by more than 10 minutes while the server is down is skipped).
-- **Webhooks:** `t3 workflow hooks` prints each hook's path; prepend your server's address. The path contains the hook's secret, so share it only with the sender. A sender's retry that repeats its delivery header (such as GitHub's `X-GitHub-Delivery`) starts no second run, and bodies over 1 MiB are refused. A hook starts at most 60 runs a minute; requests past that get `429` and can be sent again a minute later. Organization policies blocking webhook tasks block workflow webhooks too.
-- **Issues and pull requests:** workflows can start on new issues or pull requests and read, comment on, or update them via **Settings → Source control & issues** — no webhook needed. T3 Code checks roughly once a minute, and only items opened after the workflow was first loaded start runs.
+- **Webhooks:** `zharf-code workflow hooks` prints each hook's path; prepend your server's address. The path contains the hook's secret, so share it only with the sender. A sender's retry that repeats its delivery header (such as GitHub's `X-GitHub-Delivery`) starts no second run, and bodies over 1 MiB are refused. A hook starts at most 60 runs a minute; requests past that get `429` and can be sent again a minute later. Organization policies blocking webhook tasks block workflow webhooks too.
+- **Issues and pull requests:** workflows can start on new issues or pull requests and read, comment on, or update them via **Settings → Source control & issues** — no webhook needed. Zharf Code checks roughly once a minute, and only items opened after the workflow was first loaded start runs.
 
 ## Follow runs in the app
 
@@ -122,7 +122,7 @@ Top-level skipped runs, such as webhook deliveries a workflow chose to ignore, d
 
 ### Agent threads
 
-Each `agent` step runs in an ordinary thread, left out of thread lists (including `t3 thread list`). Open it from the run to watch it live, read its transcript, or send follow-up messages; the thread links back to the run.
+Each `agent` step runs in an ordinary thread, left out of thread lists (including `zharf-code thread list`). Open it from the run to watch it live, read its transcript, or send follow-up messages; the thread links back to the run.
 
 An `agent` step can launch a new thread with its own `workspace` (such as a worktree), `runtimeMode`, `interactionMode`, `title`, and typed `returns`, or continue an earlier step's thread. Runs can set their display name with `title(text)`. An `agent` step can also target a project on a [linked environment](remote-access.md#link-another-environment) (requires **Settings → Labs → Linked environments**); the run itself stays on the server that started it.
 

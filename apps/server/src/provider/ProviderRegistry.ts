@@ -103,7 +103,7 @@ export class ProviderRegistry extends Context.Service<
     }) => Effect.Effect<ReadonlyArray<ServerProvider>>;
 
     /**
-     * Drop T3-owned model caches before an explicit model refresh. Pass the
+     * Drop Zharf Code-owned model caches before an explicit model refresh. Pass the
      * target of the refresh that follows. Background and ordinary refreshes
      * keep their cache timers and must not call this.
      */
@@ -752,7 +752,7 @@ export const layer = Layer.effect(
     });
 
     type RefreshAllCompletion = Deferred.Deferred<ReadonlyArray<ServerProvider>>;
-    // A refresh is how a user asks T3 to see a CLI installed since launch; a burst shares one probe.
+    // A refresh is how a user asks Zharf Code to see a CLI installed since launch; a burst shares one probe.
     // Drivers copy the environment when built, so instances still missing their CLI are rebuilt
     // on the new PATH. They cannot have live sessions, and installed ones keep theirs.
     // Compared with the last PATH seen here, since other features re-read the login shell too.

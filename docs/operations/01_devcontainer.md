@@ -9,7 +9,7 @@
 
 ## State and caching
 
-`T3CODE_HOME` points at the workspace's gitignored `.t3`. Named Docker volumes hold the pnpm store and root `node_modules` so container rebuilds stay fast and off slow host bind mounts. The host sees an empty `node_modules`; run tooling inside the container.
+`T3CODE_HOME` points at the workspace's gitignored `.zharf-code`. Named Docker volumes hold the pnpm store and root `node_modules` so container rebuilds stay fast and off slow host bind mounts. The host sees an empty `node_modules`; run tooling inside the container.
 
 ## Out of scope
 

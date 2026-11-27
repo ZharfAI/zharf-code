@@ -108,7 +108,7 @@ function layerProviderHost(input: {
       compatibility: () => Effect.undefined,
       paths: {
         cwd: process.cwd(),
-        baseDir: "/t3",
+        baseDir: "/zharf-code",
         stateDir: "/t3/userdata",
         providerStatusCacheDir: "/t3/caches",
         attachmentsDir: "/t3/userdata/attachments",

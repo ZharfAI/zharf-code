@@ -80,9 +80,9 @@ describe("resolveRemoteOpenState", () => {
     ).toEqual({ mode: "local-exec" });
   });
 
-  it("keeps exec behavior for the environment that owns the desktop's T3 home", () => {
+  it("keeps exec behavior for the environment that owns the desktop's Zharf Code home", () => {
     // With Local environment off, a background service on this machine can own the
-    // desktop's home and still be reached through T3 Connect.
+    // desktop's home and still be reached through Zharf Connect.
     expect(
       resolveRemoteOpenState({
         target: new RelayConnectionTarget({ environmentId, label: "sol" }),

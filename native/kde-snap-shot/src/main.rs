@@ -71,12 +71,12 @@ struct Bounds {
     height: u32,
 }
 
-const REPLY: &str = "/com/t3tools/KdeCapture";
+const REPLY: &str = "/ai/zharf/KdeCapture";
 
 /// KWin's bus name and the channel of the script call in flight. `None` between calls.
 #[derive(Default)]
 struct ScriptReply(Option<(String, mpsc::SyncSender<String>)>);
-#[zbus::interface(name = "com.t3tools.KdeCapture")]
+#[zbus::interface(name = "ai.zharf.KdeCapture")]
 impl ScriptReply {
     fn reply(
         &self,
@@ -128,7 +128,7 @@ fn script(connection: &Connection, directory: &Path, body: &str) -> Result<Strin
             .as_str(),
     )?;
     let source = format!(
-        "function reply(value) {{ callDBus({destination}, '/com/t3tools/KdeCapture', 'com.t3tools.KdeCapture', 'Reply', JSON.stringify(value)); }}\ntry {{ {body} }} catch (error) {{ reply({{error: String(error)}}); }}"
+        "function reply(value) {{ callDBus({destination}, '/ai/zharf/KdeCapture', 'ai.zharf.KdeCapture', 'Reply', JSON.stringify(value)); }}\ntry {{ {body} }} catch (error) {{ reply({{error: String(error)}}); }}"
     );
     std::fs::write(&path, source)?;
     let scripting = Proxy::new(
@@ -374,7 +374,7 @@ fn run() -> Result<()> {
                 ),
             )?;
             if serde_json::from_str::<serde_json::Value>(&value)?["activated"] != true {
-                return Err("KDE could not identify the T3 Code window to activate".into());
+                return Err("KDE could not identify the Zharf Code window to activate".into());
             }
             println!("{{\"activated\":true}}");
         }

@@ -16,8 +16,8 @@ test(
     const environment = await runPromise(
       environmentId(`http://${MOBILE.host}:${MOBILE.serverPort}`),
     );
-    await device.openLink(`t3code-dev://threads/${environment}/${threadId}/terminal`, {
-      app: "com.t3tools.t3code.dev",
+    await device.openLink(`zharfcode-dev://threads/${environment}/${threadId}/terminal`, {
+      app: "ai.zharf.code.dev",
     });
     await device.alert("accept").catch(() => {});
 

@@ -1,7 +1,7 @@
 import { msg } from "gt-i18n";
 
 /**
- * Whole sentences for each T3 MCP tool row, keyed by the tool's labels from
+ * Whole sentences for each Zharf Code MCP tool row, keyed by the tool's labels from
  * `@t3tools/shared/t3McpToolPresentation`. Resolve with `{ status }`, and for
  * `changeRequest` also `{ changeRequest, number }`.
  */
@@ -245,15 +245,15 @@ const T3_TOOL_SENTENCES: ReadonlyMap<string, T3ToolSentence> = new Map<string, T
     "Create\nCreating\nCreated\nT3 threads",
     {
       detail: msg(
-        "{status, select, inProgress {Creating T3 threads} completed {Created T3 threads} failed {Failed to create T3 threads} declined {Declined to create T3 threads} stopped {Stopped creating T3 threads} other {Creating T3 threads}}",
+        "{status, select, inProgress {Creating Zharf Code threads} completed {Created Zharf Code threads} failed {Failed to create Zharf Code threads} declined {Declined to create Zharf Code threads} stopped {Stopped creating Zharf Code threads} other {Creating Zharf Code threads}}",
       ),
     },
   ],
   [
-    "Start\nStarting\nStarted\na T3 thread",
+    "Start\nStarting\nStarted\na Zharf Code thread",
     {
       detail: msg(
-        "{status, select, inProgress {Starting a T3 thread} completed {Started a T3 thread} failed {Failed to start a T3 thread} declined {Declined to start a T3 thread} stopped {Stopped starting a T3 thread} other {Starting a T3 thread}}",
+        "{status, select, inProgress {Starting a Zharf Code thread} completed {Started a Zharf Code thread} failed {Failed to start a Zharf Code thread} declined {Declined to start a Zharf Code thread} stopped {Stopped starting a Zharf Code thread} other {Starting a Zharf Code thread}}",
       ),
     },
   ],
@@ -261,31 +261,31 @@ const T3_TOOL_SENTENCES: ReadonlyMap<string, T3ToolSentence> = new Map<string, T
     "List\nListing\nListed\nT3 threads",
     {
       detail: msg(
-        "{status, select, inProgress {Listing T3 threads} completed {Listed T3 threads} failed {Failed to list T3 threads} declined {Declined to list T3 threads} stopped {Stopped listing T3 threads} other {Listing T3 threads}}",
+        "{status, select, inProgress {Listing Zharf Code threads} completed {Listed Zharf Code threads} failed {Failed to list Zharf Code threads} declined {Declined to list Zharf Code threads} stopped {Stopped listing Zharf Code threads} other {Listing Zharf Code threads}}",
       ),
     },
   ],
   [
-    "Read\nReading\nRead\na T3 thread",
+    "Read\nReading\nRead\na Zharf Code thread",
     {
       detail: msg(
-        "{status, select, inProgress {Reading a T3 thread} completed {Read a T3 thread} failed {Failed to read a T3 thread} declined {Declined to read a T3 thread} stopped {Stopped reading a T3 thread} other {Reading a T3 thread}}",
+        "{status, select, inProgress {Reading a Zharf Code thread} completed {Read a Zharf Code thread} failed {Failed to read a Zharf Code thread} declined {Declined to read a Zharf Code thread} stopped {Stopped reading a Zharf Code thread} other {Reading a Zharf Code thread}}",
       ),
     },
   ],
   [
-    "Send\nSending\nSent\nto a T3 thread",
+    "Send\nSending\nSent\nto a Zharf Code thread",
     {
       detail: msg(
-        "{status, select, inProgress {Sending to a T3 thread} completed {Sent to a T3 thread} failed {Failed to send to a T3 thread} declined {Declined to send to a T3 thread} stopped {Stopped sending to a T3 thread} other {Sending to a T3 thread}}",
+        "{status, select, inProgress {Sending to a Zharf Code thread} completed {Sent to a Zharf Code thread} failed {Failed to send to a Zharf Code thread} declined {Declined to send to a Zharf Code thread} stopped {Stopped sending to a Zharf Code thread} other {Sending to a Zharf Code thread}}",
       ),
     },
   ],
   [
-    "Wait\nWaiting\nWaited\nfor a T3 thread",
+    "Wait\nWaiting\nWaited\nfor a Zharf Code thread",
     {
       detail: msg(
-        "{status, select, inProgress {Waiting for a T3 thread} completed {Waited for a T3 thread} failed {Failed to wait for a T3 thread} declined {Declined to wait for a T3 thread} stopped {Stopped waiting for a T3 thread} other {Waiting for a T3 thread}}",
+        "{status, select, inProgress {Waiting for a Zharf Code thread} completed {Waited for a Zharf Code thread} failed {Failed to wait for a Zharf Code thread} declined {Declined to wait for a Zharf Code thread} stopped {Stopped waiting for a Zharf Code thread} other {Waiting for a Zharf Code thread}}",
       ),
     },
   ],
@@ -306,10 +306,10 @@ const T3_TOOL_SENTENCES: ReadonlyMap<string, T3ToolSentence> = new Map<string, T
     },
   ],
   [
-    "Interrupt\nInterrupting\nRequested an interrupt of\na T3 thread",
+    "Interrupt\nInterrupting\nRequested an interrupt of\na Zharf Code thread",
     {
       detail: msg(
-        "{status, select, inProgress {Interrupting a T3 thread} completed {Requested an interrupt of a T3 thread} failed {Failed to interrupt a T3 thread} declined {Declined to interrupt a T3 thread} stopped {Stopped interrupting a T3 thread} other {Interrupting a T3 thread}}",
+        "{status, select, inProgress {Interrupting a Zharf Code thread} completed {Requested an interrupt of a Zharf Code thread} failed {Failed to interrupt a Zharf Code thread} declined {Declined to interrupt a Zharf Code thread} stopped {Stopped interrupting a Zharf Code thread} other {Interrupting a Zharf Code thread}}",
       ),
     },
   ],
@@ -685,7 +685,7 @@ const T3_TOOL_SENTENCES: ReadonlyMap<string, T3ToolSentence> = new Map<string, T
     "Update\nUpdating\nUpdated\nT3 thread metadata",
     {
       detail: msg(
-        "{status, select, inProgress {Updating T3 thread metadata} completed {Updated T3 thread metadata} failed {Failed to update T3 thread metadata} declined {Declined to update T3 thread metadata} stopped {Stopped updating T3 thread metadata} other {Updating T3 thread metadata}}",
+        "{status, select, inProgress {Updating Zharf Code thread metadata} completed {Updated Zharf Code thread metadata} failed {Failed to update Zharf Code thread metadata} declined {Declined to update Zharf Code thread metadata} stopped {Stopped updating Zharf Code thread metadata} other {Updating Zharf Code thread metadata}}",
       ),
     },
   ],

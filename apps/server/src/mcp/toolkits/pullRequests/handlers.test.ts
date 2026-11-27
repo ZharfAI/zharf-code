@@ -322,16 +322,16 @@ describe("pull request toolkit handlers", () => {
       for (const host of ["git.cafe", "staging.git.cafe"]) {
         for (const project of [makeProject(), makeProject(null)]) {
           for (const target of [
-            { host, repository: "PingDotGG/T3Code", number: 21353 },
-            { url: `https://${host}/PingDotGG/T3Code/pull/21353` },
-            { url: `https://${host}/PingDotGG/T3Code/pulls/21353` },
+            { host, repository: "ZharfAI/zharf-code", number: 21353 },
+            { url: `https://${host}/ZharfAI/zharf-code/pull/21353` },
+            { url: `https://${host}/ZharfAI/zharf-code/pulls/21353` },
           ]) {
             const harness = yield* makeHarness({ project });
             const result = yield* harness.call("link_pull_request", target);
-            const url = `https://${host}/pingdotgg/t3code/pulls/21353`;
+            const url = `https://${host}/zharfai/zharf-code/pulls/21353`;
             expect(result).toMatchObject({
               host,
-              repository: "pingdotgg/t3code",
+              repository: "zharfai/zharf-code",
               number: 21353,
               url,
             });
@@ -339,7 +339,7 @@ describe("pull request toolkit handlers", () => {
               {
                 type: "thread.pull-request.link",
                 host,
-                repository: "pingdotgg/t3code",
+                repository: "zharfai/zharf-code",
                 number: 21353,
                 url,
               },

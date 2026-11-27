@@ -734,7 +734,7 @@ it.effect("a launch into a new worktree creates nothing when its base ref has no
       checkWorktreeBase: ({ projectId, workspaceStrategy }) =>
         workspaceStrategy.type !== "worktree"
           ? Effect.void
-          : workspaceStrategy.baseRef === "t3/renamed"
+          : workspaceStrategy.baseRef === "zharf/renamed"
             ? Effect.fail(
                 new ThreadLaunch.ThreadLaunchBaseRefError({
                   projectId,
@@ -772,10 +772,10 @@ it.effect("a launch into a new worktree creates nothing when its base ref has no
         })
         .pipe(Stream.unwrap, Stream.runCollect, Effect.provide(dependencies));
 
-    const refused = (yield* launchFrom("t3/renamed")).at(-1)?.result;
+    const refused = (yield* launchFrom("zharf/renamed")).at(-1)?.result;
     expect(refused).toMatchObject({ code: "invalid_request" });
     expect((refused as { message: string }).message).toContain(
-      'Base ref "t3/renamed" does not resolve to a commit in project "Client target" (/projects/client-target). No thread was created. Pass a branch, tag, or commit that exists there',
+      'Base ref "zharf/renamed" does not resolve to a commit in project "Client target" (/projects/client-target). No thread was created. Pass a branch, tag, or commit that exists there',
     );
     expect((yield* launchFrom("main", "feature/taken")).at(-1)?.result).toMatchObject({
       code: "invalid_request",

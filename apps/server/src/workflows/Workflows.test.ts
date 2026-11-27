@@ -2387,13 +2387,21 @@ it.effect("a withdrawn question ends unanswered, and its run goes on and can ask
         );
         // Already gone, so nothing to withdraw; a question that is still open is withdrawn once.
         assert.equal((yield* withdrawer("x2", "wanted"))[0], "not_open");
-        assert.equal(yield* workflows.withdraw(runId, "again", { by: "t3 CLI" }), "withdrawn");
-        assert.equal(yield* workflows.withdraw(runId, "again", { by: "t3 CLI" }), "not_open");
+        assert.equal(
+          yield* workflows.withdraw(runId, "again", { by: "zharf-code CLI" }),
+          "withdrawn",
+        );
+        assert.equal(
+          yield* workflows.withdraw(runId, "again", { by: "zharf-code CLI" }),
+          "not_open",
+        );
         const done = yield* workflows.waitFor(runId, status("completed"));
         assert.equal(done.result, "never");
         const again = (yield* workflows.get(runId)).steps.find((step) => step.name === "again");
-        assert.equal(again?.detail, "withdrawn by t3 CLI");
-        assert.deepStrictEqual(again?.result, { withdrawn: { by: "t3 CLI", reason: null } });
+        assert.equal(again?.detail, "withdrawn by zharf-code CLI");
+        assert.deepStrictEqual(again?.result, {
+          withdrawn: { by: "zharf-code CLI", reason: null },
+        });
       }),
     );
   }).pipe(Effect.provide(NodeServices.layer), Effect.scoped),
@@ -2422,7 +2430,10 @@ it.effect("a watcher sees a question leave when it is withdrawn while its run is
           Effect.forkScoped,
         );
         assert.deepStrictEqual(yield* Deferred.await(listed), ["sure"]);
-        assert.equal(yield* workflows.withdraw(runId, "sure", { by: "t3 CLI" }), "withdrawn");
+        assert.equal(
+          yield* workflows.withdraw(runId, "sure", { by: "zharf-code CLI" }),
+          "withdrawn",
+        );
         // The paused run is not woken, so the claim itself has to be what tells the watcher.
         assert.deepStrictEqual(Option.flatten(yield* Fiber.join(left)), Option.some([]));
         assert.equal((yield* workflows.get(runId)).run.status, "paused");
@@ -2566,7 +2577,7 @@ it.effect(
               answeredBySession: "someone-elses-session",
               answeredAt: "never",
             },
-            { id: "d0", answeredBy: "t3 workflow signal" },
+            { id: "d0", answeredBy: "zharf-code workflow signal" },
           );
           // Sampled before the wait for the run: the clock runs on while that waits.
           const after = yield* DateTime.now;
@@ -2575,7 +2586,7 @@ it.effect(
           assert.deepStrictEqual(answer, {
             choice: "No",
             reason: "Out of scope",
-            answeredBy: "t3 workflow signal",
+            answeredBy: "zharf-code workflow signal",
           });
           // The clock runs beside the test, so the stamp is some instant of the signal's call.
           assert.isTrue(stampedBetween(answeredAt, before, after), answeredAt);
@@ -2614,7 +2625,7 @@ it.effect(
               yield* workflows.signal(
                 { runId: named.runId, wait: "merge" },
                 { choice: "Merge", ...claimed },
-                { id: "early-named", answeredBy: "t3 workflow signal" },
+                { id: "early-named", answeredBy: "zharf-code workflow signal" },
               ),
               // A sender the server has no name for stays nameless, whatever it calls itself.
               yield* workflows.signal(
@@ -2638,7 +2649,7 @@ it.effect(
             answers.push(answer);
           }
           assert.deepStrictEqual(answers, [
-            { choice: "Merge", answeredBy: "t3 workflow signal" },
+            { choice: "Merge", answeredBy: "zharf-code workflow signal" },
             { choice: "Merge" },
           ]);
         }),
@@ -2688,7 +2699,7 @@ it.effect(
             workflows.signal(
               { runId, wait: "merge" },
               { choice: "Merge", ...claimed },
-              { id: "raced", answeredBy: "t3 workflow signal" },
+              { id: "raced", answeredBy: "zharf-code workflow signal" },
             ),
           );
           yield* Deferred.await(looked);
@@ -2700,7 +2711,10 @@ it.effect(
           yield* agents.started(runId, "land/0");
           const { steps } = yield* workflows.get(runId);
           const { answeredAt, ...answer } = mergeAnswer(steps);
-          assert.deepStrictEqual(answer, { choice: "Merge", answeredBy: "t3 workflow signal" });
+          assert.deepStrictEqual(answer, {
+            choice: "Merge",
+            answeredBy: "zharf-code workflow signal",
+          });
           assert.notEqual(answeredAt, claimed.answeredAt);
         }),
       );

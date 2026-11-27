@@ -179,7 +179,11 @@ export function useServerUpdate() {
                   version: result.value.targetVersion,
                 }),
               )
-            : m(msg("Reconnected on t3@{version}.", { version: result.value.targetVersion })),
+            : m(
+                msg("Reconnected on zharf-code@{version}.", {
+                  version: result.value.targetVersion,
+                }),
+              ),
       });
     }
     return { status: "updated" };
@@ -222,7 +226,7 @@ export function ServerUpdatesAction({
         const confirmed =
           (await requestConfirmDialog(
             gt(
-              "Update the T3 Code desktop apps on {servers}? They will close and relaunch on those machines.",
+              "Update the Zharf Code desktop apps on {servers}? They will close and relaunch on those machines.",
               { servers: desktopTargets.map((target) => target.serverLabel).join(", ") },
             ),
             { initialFocus: "confirm" },
@@ -325,12 +329,15 @@ export function ServerUpdateAction({
         type: "success",
         title: updatesInstall ? gt("Update command copied") : gt("Relaunch command copied"),
         description: updatesInstall
-          ? gt("Run `{command}` on {serverLabel}, then restart t3 with your usual options.", {
-              command,
-              serverLabel,
-            })
+          ? gt(
+              "Run `{command}` on {serverLabel}, then restart zharf-code with your usual options.",
+              {
+                command,
+                serverLabel,
+              },
+            )
           : gt(
-              "Stop t3 on {serverLabel}, then relaunch with `{command}` using the same subcommand and options. This does not update an installed t3 command.",
+              "Stop zharf-code on {serverLabel}, then relaunch with `{command}` using the same subcommand and options. This does not update an installed zharf-code command.",
               { command, serverLabel },
             ),
       });
@@ -355,7 +362,7 @@ export function ServerUpdateAction({
       const confirmed =
         (await requestConfirmDialog(
           gt(
-            "Update the T3 Code desktop app that runs the {serverLabel}? It will close and relaunch on that machine.",
+            "Update the Zharf Code desktop app that runs the {serverLabel}? It will close and relaunch on that machine.",
             { serverLabel },
           ),
           { initialFocus: "confirm" },
@@ -483,7 +490,9 @@ export function OutdatedServerUpdateAction({
     toastManager.add({
       type: "success",
       title: m(msg("{serverLabel} updated", { serverLabel })),
-      description: m(msg("Reconnected on t3@{version}.", { version: result.value.targetVersion })),
+      description: m(
+        msg("Reconnected on zharf-code@{version}.", { version: result.value.targetVersion }),
+      ),
     });
   };
   if (fromVersion !== undefined && crossesReleaseTrack(fromVersion, targetVersion)) {
