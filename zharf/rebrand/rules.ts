@@ -46,6 +46,9 @@ export const BRAND = {
   scheme: "zharfcode",
   devScheme: "zharfcode-dev",
   command: "zharf-code",
+  // The desktop app's Linux executable, .desktop file and icon. Not the command: a .deb links
+  // the executable into /usr/bin, where it would shadow the zharf-code command.
+  linuxExecutable: "zharfcode",
   homeDir: ".zharf-code",
   site: "https://platform.zharf.ai/code",
   repo: "ZharfAI/zharf-code",
@@ -222,9 +225,14 @@ export const RULES: readonly Rule[] = [
   {
     id: "linux-executable",
     find: /(?<=executableName: ["'])t3code(?=["'])/g,
-    replace: BRAND.command,
+    replace: BRAND.linuxExecutable,
   },
-  { id: "desktop-file", find: /\bt3code\.desktop\b/g, replace: `${BRAND.command}.desktop` },
+  // Not the "t3code.desktop.mode" trace attribute
+  {
+    id: "desktop-file",
+    find: /\bt3code\.desktop\b(?!\.)/g,
+    replace: `${BRAND.linuxExecutable}.desktop`,
+  },
   { id: "service-unit", find: /\bt3code(?=\.service\b)/g, replace: BRAND.command },
   { id: "dbus-name", find: /\bcom\.t3tools\.(KdeCapture|SnapShot)\b/g, replace: "ai.zharf.$1" },
   { id: "dbus-path", find: /\/com\/t3tools\/(KdeCapture|SnapShot)\b/g, replace: "/ai/zharf/$1" },
@@ -247,7 +255,7 @@ export const RULES: readonly Rule[] = [
   {
     id: "linux-metainfo",
     find: /(?<=<(?:binary|icon type="stock")>)t3code(?=<)/g,
-    replace: BRAND.command,
+    replace: BRAND.linuxExecutable,
   },
   // The name people give our MCP server in other agents ("hermes mcp add t3code …"); a line that
   // merely says "mcp" (a search query "trim mcp") is not one
@@ -397,7 +405,7 @@ export const RULES: readonly Rule[] = [
   // not Pi's RPC request ids (`t3-${nextRequestId++}`, "t3-0"), which its replay testkit matches
   {
     id: "cli-archive",
-    find: /(?<=["'`/ *]|\\[nrt])t3-(?=\$\{(?!nextRequestId\b)|\$[A-Za-z_]|<ver|v?\d+\.\d)/g,
+    find: /(?<=["'`/ *(]|\\[nrt])t3-(?=\$\{(?!nextRequestId\b)|\$[A-Za-z_]|<ver|v?\d+\.\d)/g,
     replace: `${BRAND.command}-`,
   },
   { id: "cli-escaped", find: /(?<=\\[nrt])t3(?= [a-z])/g, replace: BRAND.command }, // printf '\nt3 install: …'
