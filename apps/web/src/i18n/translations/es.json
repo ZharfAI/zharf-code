@@ -3237,10 +3237,7 @@
     {
       "t": "span",
       "i": 2,
-      "c": [
-        " ",
-        "en el ordenador que abrió esta página"
-      ]
+      "c": [" ", "en el ordenador que abrió esta página"]
     }
   ],
   "b2d53b4d1d48fbef": [
@@ -3252,10 +3249,7 @@
     {
       "t": "span",
       "i": 2,
-      "c": [
-        " ",
-        "· quien lo ejecute obtiene este acceso"
-      ]
+      "c": [" ", "· quien lo ejecute obtiene este acceso"]
     }
   ],
   "c54cc9c75db9dc58": "Aprueba solo un inicio de sesión que acabes de iniciar.",
@@ -6276,26 +6270,6 @@
   ],
   "216ab7514aea1d61": "Empezar sin agente",
   "501ce2d99da8bfd1": "Configura un agente para empezar.",
-  "e8dd686fda50ec63": [
-    "Zharf Code recopila datos de uso anónimos para mejorar la app. Para desactivarlo, consulta la",
-    " ",
-    {
-      "t": "a",
-      "i": 1,
-      "c": "política de privacidad"
-    },
-    "."
-  ],
-  "b33f35083757b42c": [
-    "Consulta la",
-    " ",
-    {
-      "t": "a",
-      "i": 1,
-      "c": "política de privacidad"
-    },
-    "."
-  ],
   "f77d000c0710f066": "Activar",
   "4ed27bf946e504db": "Configurar",
   "7a26eaacff0607f7": [
