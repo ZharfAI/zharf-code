@@ -431,6 +431,13 @@ export const RULES: readonly Rule[] = [
     replace: BRAND.command,
     not: new RegExp(`\\.[ch]$|${SAMPLE_DATA.source}`),
   },
+  // The installers' messages: "run %st3%s" (bold through printf), "${bin_dir}/t3." at a sentence end
+  {
+    id: "cli-installer",
+    find: /(?<=%s)t3(?=( up)?%s)|(?<=\$\{bin_dir\}\/)t3(?=\. )/g,
+    replace: BRAND.command,
+    only: /^scripts\/install\.(sh|ps1)$/,
+  },
   // The word itself, in prose, messages and command lines; not code named t3
   {
     id: "cli-word",
