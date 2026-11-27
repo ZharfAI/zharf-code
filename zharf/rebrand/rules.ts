@@ -45,7 +45,7 @@ export const RULES: readonly Rule[] = [
   },
   {
     id: "repo-pair",
-    find: /\bowner(["']?:\s*)(["'])pingdotgg\2(,\s*["']?repo["']?:\s*)(["'])t3code\4/g,
+    find: /\bowner(["']?:\s*)(["'])pingdotgg\2(,\s*["']?(?:repo|name)["']?:\s*)(["'])t3code\4/g,
     replace: "owner$1$2zharfai$2$3$4zharf-code$4",
   },
   { id: "mcp-app-name", find: /\bT3%20Code\b/g, replace: "Zharf%20Code" },
@@ -98,6 +98,26 @@ export const RULES: readonly Rule[] = [
   { id: "policy-registry", find: /T3Tools(\\+)T3Code/g, replace: "ZharfAI$1ZharfCode" },
   { id: "policy-folder", find: /(?<=[/\\])T3Code(?=[/\\])/g, replace: "ZharfCode" },
   { id: "policy-etc", find: /\/etc\/t3code\b/g, replace: "/etc/zharf-code" },
+  {
+    id: "scheme-regex",
+    find: /(?<=[\^/])t3code(?=\((?:\?:)?[-\[\]a-z|+]+\)\??:)/g,
+    replace: BRAND.scheme,
+  },
+  { id: "scheme-default", find: /(?<=\bscheme = ")t3code(?=")/g, replace: BRAND.scheme },
+  {
+    id: "scheme-line",
+    find: /^.*:\/\/.*$/gm,
+    replace: (line) =>
+      /\$\{[^}]*["'`]t3code(?:-dev)?["'`]/.test(line)
+        ? line.replace(/(["'`])(?:t3code|zharf-code)(-dev)?\1/g, `$1${BRAND.scheme}$2$1`)
+        : line,
+  },
+  { id: "scheme-upper", find: /\bT3CODE(?=:\/\/)/g, replace: "ZHARFCODE" },
+  {
+    id: "scheme-mime",
+    find: /(?<=x-scheme-handler\/)t3code(-dev)?\b/g,
+    replace: `${BRAND.scheme}$1`,
+  },
   { id: "scheme-url", find: /\bt3code(-dev|-preview)?:\/\//g, replace: `${BRAND.scheme}$1://` },
   // URL.protocol comparisons: "t3code:" (not localStorage keys, which go on after the colon)
   {
@@ -114,6 +134,12 @@ export const RULES: readonly Rule[] = [
   {
     id: "profile-dir",
     find: /(?<=["'])t3code-(v2|dev)(?=["'])/g,
+    replace: "zharf-code-$1",
+    only: /DesktopUserData(\.test)?\.ts$/,
+  },
+  {
+    id: "profile-dir-path",
+    find: /(?<=[/\\])t3code-(v2|dev)(?=["'`/\\]|$)/gm,
     replace: "zharf-code-$1",
   },
   {
@@ -182,7 +208,14 @@ export const RULES: readonly Rule[] = [
   },
   {
     id: "os-names",
-    find: /\bt3code(?=-\$\{domain\}|-<domain>|-\$\{name\}-|-provider-updates\b|-backend-recovery\b|\.mobileconfig\b|-pr-)|(?<=startsWith\(")t3code(?=-")|(?<=\b90-)t3code(?=-protect\.conf)|(?<=\^)t3code(?=\[\/-\]pr-)/g,
+    find: /\bt3code(?=-\$\{domain\}|-<domain>|-\$\{name\}-|-\$\{userKey\}|-provider-updates\b|-backend-recovery\b|\.mobileconfig\b|[-/]pr-)|(?<=startsWith\(")t3code(?=-")|(?<=\b90-)t3code(?=-protect\.conf)|(?<=\^)t3code(?=\[\/-\]pr-)/g,
+    replace: BRAND.command,
+  },
+  { id: "log-tag", find: /\[t3code\]/g, replace: `[${BRAND.command}]` },
+  { id: "ssh-display", find: /(?<=DISPLAY: ["'])t3code(?=["'])/g, replace: BRAND.command },
+  {
+    id: "user-agent",
+    find: /(?<=["']user-agent["']:\s*["'])t3code(?=["'])/gi,
     replace: BRAND.command,
   },
   {
@@ -295,7 +328,13 @@ export const RULES: readonly Rule[] = [
     // not the `T3: {…}` global, nor `T3${name}Stream`-style generated identifiers
     find: /(?<![\w$@/.+=\\-])T3(?![\w$-]|\.[A-Za-z_]| Chat\b|:\s*[{[(])/g,
     replace: BRAND.name,
-    not: /\.e2e\.[cm]?[jt]sx?$|^scripts\/scenarios\//, // scenarios type their fixture as T3
+    not: /\.e2e\.[cm]?[jt]sx?$|^scripts\/scenarios\/|\.test\.[cm]?[jt]sx?$/, // scenarios type their fixture as T3
+  },
+  {
+    id: "bare-tests",
+    find: /(?<![\w$@/.+=\\"'`-])T3(?![\w$"'`-]|\.[A-Za-z_]| Chat\b|:\s*[{[(])/g,
+    replace: BRAND.name,
+    only: /\.test\.[cm]?[jt]sx?$/,
   },
 ];
 

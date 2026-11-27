@@ -25,13 +25,12 @@ const KEEP: readonly RegExp[] = [
   /\bt3\[[^\]]*\]\??code\b|\bt3_code\b|\|t3code\)/, // patterns that recognize that MCP server name
   /\bt3code_desktop\b|\bt3code-(?:test|server|web|preview|annotation|recording|peer|git|review|desktop|dev-root)\b/, // trace and in-app names
   /\bcom\.t3tools\.(?!t3code\b)[a-z]/, // Kotlin/Gradle package names (internal)
-  /\bt3code\b(?=["'`]?\s*(?:as const)?[,;)\]}])/, // attribution and client-name values
   /["'`]t3\/[A-Za-z][\w-]*(?:\/[\w/-]*)?["'`]?/, // Effect service tags ("t3/orchestration-v2/…")
   /\/\.well-known\/t3\/|\brefs\/t3\/|\burn:t3:/, // wire paths, hidden checkpoint refs, URN
   /\bt3-[a-z][\w-]*/, // native module folders (t3-terminal, t3-highlights…)
   /\bt3code[.:-][\w.-]+|\bt3code(?=:\s)|Symbol\.for\("t3code\./, // storage keys, temp prefixes
-  /\bt3code[A-Z_]\w*|["'`]t3code["'`]|\/__t3code\/|t3code-\$\{|com\.example\.t3code/, // identifiers
-  /\bt3code(?=[-/[(])/, // legacy branch prefixes still recognized
+  /\bt3code[A-Z_]\w*|\/__t3code\/|t3code-\$\{|com\.example\.t3code/, // identifiers
+  /\bt3code(?=[-/[]|\(\?:\[-\/\])/, // legacy branch prefixes still recognized
   /\.t3code\b|\b__t3code\w*/, // manifest fields, globals
   /\bt3#\w+|"name":\s*"t3"|--filter\s+t3\b|affected\.includes\("t3"\)/, // the server's workspace package name
   /(?:const|let|var|return|[{,(])\s*t3\b|\bt3(?=\s*(?:[:,})]|!==|===|=[^=]))|[{,]t3:/, // code named t3
@@ -80,6 +79,12 @@ const SKIP_DIRS = new Set([".git", "node_modules", ".vite-plus", ".turbo", "zhar
 /** Comment lines may name internal identifiers; only lowercase matches are excused there. */
 const COMMENT_LINE = /^\s*(?:\/\/|\/?\*|#|<!--)/;
 
+/** A bare `t3code` is kept only on these lines: stored message attribution, trace labels the
+ *  owner configures, the Grok sign-in referrer xAI knows, MCP server names other agents report,
+ *  and the field the npm launcher's manifest has always used. */
+const KEEP_T3CODE_LINE =
+  /attribution|"service\.namespace"|T3_CODE_OAUTH_REFERRER|^\s*["']t3code["'],\s*$|t3code: Schema\.|\?\.t3code\b|"version", "t3code"|\bt3code: \{ databaseMigration|^\s*\?\s*"t3code"\s*$|REPLAY_CHECKOUT/;
+
 export interface Finding {
   readonly file: string;
   readonly line: number;
@@ -104,6 +109,7 @@ export function scanText(file: string, text: string, area?: string): Finding[] {
     for (const m of line.matchAll(SUSPECT)) {
       const index = m.index ?? 0;
       if (COMMENT_LINE.test(line) && /^t3(?:code)?$/.test(m[0])) continue;
+      if (m[0] === "t3code" && KEEP_T3CODE_LINE.test(line)) continue;
       if (KEEP.some((re) => covers(re, line, index, m[0].length))) continue;
       const todo = area ?? PENDING.find(([re]) => covers(re, line, index, m[0].length))?.[1];
       findings.push({ file, line: i + 1, match: m[0], text: line.trim().slice(0, 160), todo });
