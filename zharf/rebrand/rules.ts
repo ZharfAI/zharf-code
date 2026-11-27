@@ -405,7 +405,8 @@ export const RULES: readonly Rule[] = [
   // not Pi's RPC request ids (`t3-${nextRequestId++}`, "t3-0"), which its replay testkit matches
   {
     id: "cli-archive",
-    find: /(?<=["'`/ *(]|\\[nrt])t3-(?=\$\{(?!nextRequestId\b)|\$[A-Za-z_]|<ver|v?\d+\.\d)/g,
+    // not the Linux capture helpers, whose Rust crates build t3-<backend>-snap-shot
+    find: /(?<=["'`/ *(]|\\[nrt])t3-(?=\$\{(?!nextRequestId\b|input\.backend\b)|\$[A-Za-z_]|<ver|v?\d+\.\d)/g,
     replace: `${BRAND.command}-`,
   },
   { id: "cli-escaped", find: /(?<=\\[nrt])t3(?= [a-z])/g, replace: BRAND.command }, // printf '\nt3 install: …'
