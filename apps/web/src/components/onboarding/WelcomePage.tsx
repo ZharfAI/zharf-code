@@ -65,7 +65,7 @@ import {
   resolveOnboardingProviderInstallCommand,
   resolveOnboardingProviderLoginCommand,
 } from "../../onboarding/providerReadiness.logic";
-import { isZharfAgent } from "../../zharf/zharfAgents";
+import { isZharfAgent, zharfAgentInstallCommand } from "../../zharf/zharfAgents";
 import {
   cliTerminalStep,
   codexCardProvider,
@@ -484,10 +484,11 @@ function AgentsSection({
             serverConfig.settings,
             serverConfig.environment.platform.os,
           )
-        : resolveOnboardingProviderInstallCommand(
+        : (zharfAgentInstallCommand(provider, serverConfig.environment.platform.os) ??
+          resolveOnboardingProviderInstallCommand(
             provider.driver,
             serverConfig.environment.platform.os,
-          ),
+          )),
       keybindings: serverConfig.keybindings,
     });
   };
