@@ -52,7 +52,7 @@ const SKIP: readonly RegExp[] = [
   /^oxlint-plugin-t3code\//,
   /(^|\/)deps\/[^/]+\.tgz$/,
   /(^|\/)deps\/README\.md$/, // provenance of T3's dependency forks
-  /^(README|TRADEMARK|SECURITY)\.md$/, // the fork's own, with the required attribution to T3 Code
+  /^(README|TRADEMARK|SECURITY)\.md$|^docs\/user\/faq\.md$/, // the fork's own, with the required attribution to T3 Code
   /\.(test|integration|spec|e2e)\.[cm]?[jt]sx?$/, // tests never ship; the rules still run on them
   /(^|\/)(test|tests|__tests__|fixtures|__fixtures__|integration)\//,
   /\.(c|h)$/, // vendored C sources

@@ -1,6 +1,6 @@
 ## What makes Zharf Code special?
 
-Zharf Code is ZharfAI's build of T3 Code, which many people use and love. It's important we keep
+Zharf Code is ZharfAI's fork of an open-source app that many people use and love (see README.md). It's important we keep
 the things they love as we keep changing it. Here's a brief list of the things we can never
 compromise on.
 
