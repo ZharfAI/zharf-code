@@ -381,6 +381,34 @@ describe("withZharfSignIn", () => {
     auth: () => undefined,
     platform: PLATFORM,
   });
+  /** The platform's GET /v1/balance, answering with `reply` (a status and a body). */
+  const balanceService = (reply: { status: number; body?: unknown }) =>
+    Layer.mergeAll(
+      signInService,
+      Layer.succeed(
+        HttpClient.HttpClient,
+        HttpClient.make((request) =>
+          Effect.sync(() =>
+            HttpClientResponse.fromWeb(
+              request,
+              new Response(JSON.stringify(reply.body ?? {}), {
+                status: new URL(request.url).pathname === "/v1/balance" ? reply.status : 404,
+                headers: { "content-type": "application/json" },
+              }),
+            ),
+          ),
+        ),
+      ),
+    );
+  const unlimited = {
+    status: 200,
+    body: {
+      currency: "ZHARF",
+      available: "25",
+      balance: "25",
+      key: { spent: "0", spend_limit: null },
+    },
+  };
 
   effectIt.effect("reports a Zharf agent signed in once its key is set", () =>
     Effect.gen(function* () {
@@ -397,7 +425,76 @@ describe("withZharfSignIn", () => {
         label: "Zharf",
         endpoint: PLATFORM,
       });
-    }).pipe(Effect.provide(signInService), Effect.scoped),
+      // Pay per use: no bar, the balance in words, and a link to top up.
+      expect(signedIn.usageLimits).toMatchObject({
+        windows: [],
+        unavailable: {
+          reason: "unsupported",
+          message: "Pay per use from your Zharf balance: 25 ZHARF left.",
+        },
+        externalUsage: { url: `${PLATFORM}/wallet` },
+      });
+    }).pipe(Effect.provide(balanceService(unlimited)), Effect.scoped),
+  );
+
+  effectIt.effect("shows a key's spending limit, and an empty balance as spent", () =>
+    Effect.gen(function* () {
+      const limited = yield* (yield* create(ZHARF_CLAUDE_INSTANCE_ID, KEY)).snapshot.refresh;
+      expect(limited.usageLimits?.windows).toEqual([
+        {
+          id: "zharf-key-limit",
+          kind: "other",
+          label: "Key limit · 2.5 ZHARF left",
+          usedPercent: 37.5,
+        },
+      ]);
+      expect(
+        ZharfSignIn.zharfUsageLimits(
+          {
+            currency: "ZHARF",
+            available: "0",
+            balance: "0",
+            key: { spent: "3", spend_limit: null },
+          },
+          "2026-11-27T00:00:00.000Z",
+          PLATFORM,
+        ).windows,
+      ).toEqual([
+        { id: "zharf-balance", kind: "other", label: "Zharf balance · empty", usedPercent: 100 },
+      ]);
+    }).pipe(
+      Effect.provide(
+        balanceService({
+          status: 200,
+          body: {
+            currency: "ZHARF",
+            available: "2.5",
+            balance: null,
+            key: { spent: "1.5", spend_limit: "4" },
+          },
+        }),
+      ),
+      Effect.scoped,
+    ),
+  );
+
+  effectIt.effect("asks for a new sign-in when the platform refuses the key", () =>
+    Effect.gen(function* () {
+      const refused = yield* (yield* create(ZHARF_CLAUDE_INSTANCE_ID, KEY)).snapshot.refresh;
+      expect(refused.auth.status).toBe("unauthenticated");
+      expect(refused.message).toBe(
+        "The platform no longer accepts this Zharf sign-in. Sign in again.",
+      );
+      expect(refused.usageLimits).toBeUndefined();
+    }).pipe(Effect.provide(balanceService({ status: 401 })), Effect.scoped),
+  );
+
+  effectIt.effect("stays signed in when the platform cannot be reached", () =>
+    Effect.gen(function* () {
+      const offline = yield* (yield* create(ZHARF_CLAUDE_INSTANCE_ID, KEY)).snapshot.refresh;
+      expect(offline.auth.status).toBe("authenticated");
+      expect(offline.usageLimits).toBeUndefined();
+    }).pipe(Effect.provide(balanceService({ status: 503 })), Effect.scoped),
   );
 
   effectIt.effect("leaves the driver's other instances alone", () =>
@@ -405,6 +502,6 @@ describe("withZharfSignIn", () => {
       const other = yield* (yield* create(ProviderInstanceId.make("claudeAgent"), "")).snapshot
         .getSnapshot;
       expect(other.setup).toEqual({ canAuthenticate: false, canInstall: true });
-    }).pipe(Effect.provide(signInService), Effect.scoped),
+    }).pipe(Effect.provide(balanceService(unlimited)), Effect.scoped),
   );
 });

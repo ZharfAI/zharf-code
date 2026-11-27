@@ -171,3 +171,31 @@ export const codingModels = Effect.fn("ZharfPlatform.codingModels")(function* (b
   );
   return body.data.filter(isCodingModel);
 });
+
+const Balance = Schema.Struct({
+  currency: Schema.String,
+  /** What the key can spend now, as a decimal string of ZHARF. */
+  available: Schema.String,
+  /** The account's whole balance; null for a key with a spending limit. */
+  balance: Schema.NullOr(Schema.String),
+  key: Schema.Struct({ spent: Schema.String, spend_limit: Schema.NullOr(Schema.String) }),
+});
+export type ZharfBalance = typeof Balance.Type;
+
+/** What the key may still spend (GET /v1/balance), or null when the platform no longer knows it. */
+export const balance = Effect.fn("ZharfPlatform.balance")(function* (baseUrl: string, key: string) {
+  const client = yield* HttpClient.HttpClient;
+  const response = yield* client
+    .execute(
+      HttpClientRequest.get(`${baseUrl}/v1/balance`).pipe(HttpClientRequest.bearerToken(key)),
+    )
+    .pipe(Effect.timeout("20 seconds"), Effect.mapError(unreachable));
+  // 401: unknown or revoked key; 403: a suspended account. Both need a new sign-in or support.
+  if (response.status === 401 || response.status === 403) return null;
+  return yield* HttpClientResponse.filterStatusOk(response).pipe(
+    Effect.flatMap(HttpClientResponse.schemaBodyJson(Balance)),
+    Effect.mapError(
+      (cause) => new ZharfPlatformError({ detail: "Could not read the Zharf balance.", cause }),
+    ),
+  );
+});

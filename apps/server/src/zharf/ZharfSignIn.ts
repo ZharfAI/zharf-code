@@ -9,6 +9,8 @@ import {
   ProviderSetupError,
   type ProviderInstanceId,
   type ServerProvider,
+  type ServerProviderUsageLimits,
+  type ServerProviderUsageWindow,
 } from "@t3tools/contracts";
 import type { ProviderAuthController } from "@t3tools/provider-core/server/auth";
 import type { ProviderDriver, ProviderInstance } from "@t3tools/provider-core/server/driver";
@@ -17,12 +19,15 @@ import type { ProviderAuthFlowContext } from "@t3tools/provider-core/server/prov
 import * as HostProcess from "@t3tools/shared/HostProcess";
 import * as Config from "effect/Config";
 import * as Context from "effect/Context";
+import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
 import * as Path from "effect/Path";
+import * as Schedule from "effect/Schedule";
 import * as Schema from "effect/Schema";
 import * as Stream from "effect/Stream";
+import * as SubscriptionRef from "effect/SubscriptionRef";
 import * as NodeOS from "node:os";
 import * as NodeUtil from "node:util";
 import { HttpClient } from "effect/http";
@@ -217,45 +222,140 @@ const make = Effect.gen(function* () {
 
 export const layer = Layer.effect(ZharfSignIn, make);
 
-/** What a Zharf agent reports: signed in when its key is set, whatever the agent's own login says. */
-const withZharfAuth =
-  (signedIn: boolean, platform: string) =>
-  <S extends ServerProvider>(snapshot: S): S => ({
-    ...snapshot,
-    auth: signedIn
+/** What the platform last said about the key: nothing yet (or unreachable), its balance, or no. */
+type KeyState =
+  | { readonly kind: "unread" }
+  | {
+      readonly kind: "balance";
+      readonly balance: ZharfPlatform.ZharfBalance;
+      readonly checkedAt: string;
+    }
+  | { readonly kind: "refused" };
+
+const BALANCE_INTERVAL = "5 minutes";
+
+/**
+ * A Zharf agent's usage: pay per use from the balance. A bar only for a key's spending limit,
+ * or for an empty balance, which the app then treats like a spent subscription.
+ */
+export const zharfUsageLimits = (
+  balance: ZharfPlatform.ZharfBalance,
+  checkedAt: string,
+  platform: string,
+): ServerProviderUsageLimits => {
+  const available = Number(balance.available);
+  const left = `${balance.available} ZHARF left`;
+  const windows: Array<ServerProviderUsageWindow> = [];
+  if (balance.key.spend_limit !== null) {
+    const limit = Number(balance.key.spend_limit);
+    const used = limit > 0 ? (Number(balance.key.spent) / limit) * 100 : 100;
+    windows.push({
+      id: "zharf-key-limit",
+      kind: "other",
+      label: `Key limit · ${left}`,
+      usedPercent: available <= 0 ? 100 : Math.min(100, Math.max(0, used)),
+    });
+  } else if (available <= 0) {
+    windows.push({
+      id: "zharf-balance",
+      kind: "other",
+      label: "Zharf balance · empty",
+      usedPercent: 100,
+    });
+  }
+  return {
+    checkedAt,
+    windows,
+    ...(windows.length === 0
       ? {
-          ...snapshot.auth,
-          status: "authenticated",
-          type: "apiKey",
-          label: "Zharf",
-          endpoint: platform,
-          canLogout: true,
+          unavailable: {
+            reason: "unsupported" as const,
+            message: `Pay per use from your Zharf balance: ${left}.`,
+          },
         }
-      : { status: "unauthenticated", canLogout: false },
-    setup: {
+      : {}),
+    externalUsage: { label: "Zharf wallet", url: `${platform}/wallet` },
+  };
+};
+
+/**
+ * What a Zharf agent reports. Signed in when it holds a key the platform has not refused,
+ * whatever the agent's own login says; its usage is the key's balance.
+ */
+const withZharfAuth =
+  (signedIn: boolean, platform: string, state: KeyState) =>
+  <S extends ServerProvider>(snapshot: S): S => {
+    const { usageLimits: _agentLimits, ...rest } = snapshot;
+    const setup = {
       canInstall: snapshot.setup?.canInstall ?? false,
       canAuthenticate: true,
       documentationUrl: `${platform}/code`,
-    },
-  });
+    };
+    if (!signedIn || state.kind === "refused") {
+      return {
+        ...rest,
+        auth: { status: "unauthenticated", canLogout: false },
+        ...(state.kind === "refused" && signedIn
+          ? { message: "The platform no longer accepts this Zharf sign-in. Sign in again." }
+          : {}),
+        setup,
+      } as S;
+    }
+    return {
+      ...rest,
+      auth: {
+        ...snapshot.auth,
+        status: "authenticated",
+        type: "apiKey",
+        label: "Zharf",
+        endpoint: platform,
+        canLogout: true,
+      },
+      ...(state.kind === "balance"
+        ? { usageLimits: zharfUsageLimits(state.balance, state.checkedAt, platform) }
+        : {}),
+      setup,
+    } as S;
+  };
 
 /**
- * Hands the Zharf agents the shared sign-in and the sign-in state they report. Other instances
- * of the driver are left exactly as the driver made them.
+ * Hands the Zharf agents the shared sign-in, and the sign-in and balance they report. Other
+ * instances of the driver are left exactly as the driver made them.
  */
 export const withZharfSignIn = <Config, R, UsageR>(
   driver: ProviderDriver<Config, R, UsageR>,
-): ProviderDriver<Config, R | ZharfSignIn, UsageR> => ({
+): ProviderDriver<Config, R | ZharfSignIn | HttpClient.HttpClient, UsageR> => ({
   ...driver,
   create: Effect.fn("withZharfSignIn.create")(function* (input) {
     const instance = yield* driver.create(input);
     const agent = zharfAgent(input.instanceId);
     if (agent === undefined) return instance;
     const signIn = yield* ZharfSignIn;
-    const signedIn = input.environment.some(
-      (variable) => variable.name === agent.keyVariable && variable.value.length > 0,
+    const http = yield* HttpClient.HttpClient;
+    const key =
+      input.environment.find((variable) => variable.name === agent.keyVariable)?.value ?? "";
+    const signedIn = key.length > 0;
+    const state = yield* SubscriptionRef.make<KeyState>({ kind: "unread" });
+    // An unreachable platform leaves what was last read: a network cut is not a sign-out.
+    const check = ZharfPlatform.balance(signIn.platform, key).pipe(
+      Effect.flatMap((balance) =>
+        Effect.gen(function* () {
+          const checkedAt = DateTime.formatIso(yield* DateTime.now);
+          const next: KeyState =
+            balance === null ? { kind: "refused" } : { kind: "balance", balance, checkedAt };
+          yield* SubscriptionRef.set(state, next);
+        }),
+      ),
+      Effect.provideService(HttpClient.HttpClient, http),
+      Effect.catchCause((cause) => Effect.logDebug("Zharf balance not read", cause)),
     );
-    const patch = withZharfAuth(signedIn, signIn.platform);
+    if (signedIn) {
+      yield* check.pipe(Effect.repeat(Schedule.spaced(BALANCE_INTERVAL)), Effect.forkScoped);
+    }
+    const patch = <S extends ServerProvider>(snapshot: S) =>
+      SubscriptionRef.get(state).pipe(
+        Effect.map((current) => withZharfAuth(signedIn, signIn.platform, current)(snapshot)),
+      );
     const { snapshot } = instance;
     const auth = signIn.auth(input.instanceId);
     const patched: ProviderInstance = {
@@ -263,13 +363,27 @@ export const withZharfSignIn = <Config, R, UsageR>(
       ...(auth ? { auth } : {}),
       snapshot: {
         ...snapshot,
-        getSnapshot: snapshot.getSnapshot.pipe(Effect.map(patch)),
-        refresh: snapshot.refresh.pipe(Effect.map(patch)),
-        streamChanges: snapshot.streamChanges.pipe(Stream.map(patch)),
+        getSnapshot: snapshot.getSnapshot.pipe(Effect.flatMap(patch)),
+        refresh: (signedIn ? check : Effect.void).pipe(
+          Effect.andThen(snapshot.refresh),
+          Effect.flatMap(patch),
+        ),
+        // A new balance is a change of the snapshot too; ends with the agent's own stream.
+        streamChanges: snapshot.streamChanges.pipe(
+          Stream.merge(
+            SubscriptionRef.changes(state).pipe(
+              Stream.drop(1),
+              Stream.mapEffect(() => snapshot.getSnapshot),
+            ),
+            { haltStrategy: "left" },
+          ),
+          Stream.mapEffect(patch),
+        ),
       },
       ...(instance.snapshotForCwd
         ? {
-            snapshotForCwd: (cwd: string) => instance.snapshotForCwd!(cwd).pipe(Effect.map(patch)),
+            snapshotForCwd: (cwd: string) =>
+              instance.snapshotForCwd!(cwd).pipe(Effect.flatMap(patch)),
           }
         : {}),
     };
