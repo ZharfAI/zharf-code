@@ -2739,11 +2739,9 @@ export const resolveGitHubPublishConfig = Effect.fn("resolveGitHubPublishConfig"
   // Zharf Code releases feed the app from platform.zharf.ai, not GitHub (see release.yml).
   const updateUrl = Option.getOrUndefined(env.updateUrl)?.trim();
   if (updateUrl) {
-    return {
-      provider: "generic",
-      url: updateUrl,
-      ...(updateChannel === "nightly" ? { channel: "nightly" as const } : {}),
-    };
+    // Named, or electron-builder names the feed after the version's suffix ("zharf-mac.yml"),
+    // while the app asks for the channel it is on ("latest-mac.yml").
+    return { provider: "generic", url: updateUrl, channel: updateChannel };
   }
   const rawRepo = (
     Option.getOrUndefined(env.updateRepository)?.trim() ||
