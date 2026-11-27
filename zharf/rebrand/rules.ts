@@ -467,10 +467,17 @@ export const RULES: readonly Rule[] = [
     replace: BRAND.name,
     not: /\.e2e\.[cm]?[jt]sx?$|^scripts\/scenarios\/|\.test\.[cm]?[jt]sx?$/, // scenarios type their fixture as T3
   },
+  // Tests: also inside strings ("T3 server is running as root", "T3's browser"), so they expect
+  // what the code now says; not a string that is only "T3" (monogram fixtures), nor one that
+  // ends in T3 (sample names)
   {
     id: "bare-tests",
-    find: /(?<![\w$@/.+=\\"'`-])(?<!=\s+)T3(?![\w$"'`-]|\.[A-Za-z_]| Chat\b|:\s*[{[(])/g,
-    replace: BRAND.name,
+    find: /(?<![\w$@/.+=\\-])(?<!=\s+)T3(?![\w$-]|\.[A-Za-z_]| Chat\b|:\s*[{[(])/g,
+    replace: (match, offset, text) => {
+      const after = text.slice(offset + 2, offset + 4);
+      if (/^["`]/.test(after) || (/^'/.test(after) && after !== "'s")) return match;
+      return BRAND.name;
+    },
     only: /\.test\.[cm]?[jt]sx?$/,
   },
 ];
