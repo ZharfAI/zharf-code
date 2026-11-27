@@ -43,7 +43,7 @@ Zharf Code runs the official Claude Code and Codex programs with your own login,
 makers ship them; it does not copy or share your credentials. We cannot speak for Anthropic,
 OpenAI or anyone else: read and follow each provider's terms for your plan.
 
-## Can I add several accounts for one provider?
+## Can I add a bunch of accounts for one provider?
 
 Yes, as separate providers: [Codex](./providers-codex.md#use-multiple-accounts) ·
 [Claude](./providers-claude.md#separate-accounts-or-configurations). Switching a thread between
