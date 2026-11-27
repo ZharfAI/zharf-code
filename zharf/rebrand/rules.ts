@@ -310,8 +310,21 @@ export const RULES: readonly Rule[] = [
     find: /\bt3code(?=-\$\{domain\}|-<domain>|-PC-|-\$\{name\}-|-\$\{userKey\}|-provider-updates\b|-backend-recovery\b|\.mobileconfig\b|[-/]pr-)|(?<=startsWith\(")t3code(?=-")|(?<=\b90-)t3code(?=-protect\.conf)|(?<=\^)t3code(?=\[\/-\]pr-)/g,
     replace: BRAND.command,
   },
+  // The control socket's folder, as its test spells it; the longer name needs a shorter sample
+  // folder to stay under macOS's 103-byte socket limit
+  {
+    id: "control-socket-test",
+    find: /\bt3code(?=-1000\b)|(?<="x"\.repeat\()56(?=\))/g,
+    replace: (match) => (match === "56" ? "52" : BRAND.command),
+    only: /^packages\/shared\/src\/desktopAppControl\.test\.ts$/,
+  },
   { id: "log-tag", find: /\[t3code\]/g, replace: `[${BRAND.command}]` },
-  { id: "ssh-display", find: /(?<=DISPLAY: ["'])t3code(?=["'])/g, replace: BRAND.command },
+  // The DISPLAY ssh's askpass gets, and the test that reads it back (env.DISPLAY, "t3code")
+  {
+    id: "ssh-display",
+    find: /(?<=DISPLAY(?::|,) ["'])t3code(?=["'])/g,
+    replace: BRAND.command,
+  },
   {
     id: "user-agent",
     find: /(?<=["']user-agent["']:\s*["'])t3code(?=["'])/gi,
@@ -412,7 +425,7 @@ export const RULES: readonly Rule[] = [
       // The server's workspace package stays "t3": Effect derives its service keys ("t3/…")
       // from it. Only the command people type is renamed.
       if (path === "apps/server/package.json" && /"name":\s*"$/.test(before)) return match;
-      if (/--filter\s+$|affected\.includes\("$/.test(before)) return match;
+      if (/--filter[\s=]+$|affected\.includes\("$/.test(before)) return match; // the package "t3"
       if (/^\s*(?:=[^=>]|!==|===|\?\?)/.test(after)) return match; // t3 = …, t3 !== …
       if (/(?:const|let|var|return|[{,([:=?])\s*$/.test(before) && /^\s*[,;})\]:]/.test(after)) {
         return match; // { t3, app }, return t3;, (t3), [t3]: …, projectId: t3 }
