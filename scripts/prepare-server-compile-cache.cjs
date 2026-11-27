@@ -62,7 +62,10 @@ module.exports = async ({ appOutDir, electronPlatformName, arch, packager }) => 
       runner,
       `require(${JSON.stringify(helper)}).generatePreparedServerCache(${JSON.stringify(resources)}).then(()=>process.exit(0),e=>{console.error(e);process.exit(1)})`,
     );
-    result = spawnSync(executable, [runner], { env, encoding: "utf8", timeout: 120000 });
+    // Zharf Code: Rosetta translates all of Electron on first run, which a 3-core GitHub-hosted
+    // runner did not finish in 2 minutes.
+    const timeout = runsWithRosetta ? 600000 : 120000;
+    result = spawnSync(executable, [runner], { env, encoding: "utf8", timeout });
   } finally {
     fs.rmSync(state, { recursive: true, force: true });
   }
