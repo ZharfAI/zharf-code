@@ -252,6 +252,13 @@ export const RULES: readonly Rule[] = [
     replace: "ZharfAI.Policies.ZharfCode",
   },
   { id: "policy-admx-prefix", find: /(?<=<target prefix=")t3code(?=")/g, replace: "zharfcode" },
+  // The colour theme named after T3 Chat; its stored id ("t3-chat") stays, so saved choices hold
+  {
+    id: "theme-label",
+    find: /(?<=\blabel: ")T3 Chat(?=",)/g,
+    replace: "Orchid",
+    only: /^packages\/shared\/src\/themePalettes\.ts$/,
+  },
   {
     id: "linux-metainfo",
     find: /(?<=<(?:binary|icon type="stock")>)t3code(?=<)/g,
