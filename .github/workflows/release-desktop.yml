@@ -116,6 +116,12 @@ on:
       relay_url:
         required: true
         type: string
+      # Zharf Code: the generic update feed baked into the app (T3CODE_DESKTOP_UPDATE_URL).
+      # Empty keeps the GitHub feed of this repository.
+      update_url:
+        required: false
+        default: ""
+        type: string
 
 # electron-builder leaves the default arch (x64) out of the unpacked app's
 # directory name.
@@ -132,13 +138,15 @@ jobs:
     name: Build ${{ inputs.label }}
     runs-on: ${{ inputs.runner }}
     # Windows waits for the Linux CLI archive inside its own budget (see
-    # "Wait for Linux CLI archive"), so it gets that wait on top of the usual 30.
-    timeout-minutes: ${{ inputs.platform == 'win' && 70 || 30 }}
+    # "Wait for Linux CLI archive"), so it gets that wait on top of the usual 60.
+    # Zharf Code: 60, not 30, for GitHub-hosted runners (3-4 cores, cold caches).
+    timeout-minutes: ${{ inputs.platform == 'win' && 100 || 60 }}
     env:
       T3CODE_CLERK_PUBLISHABLE_KEY: ${{ inputs.clerk_publishable_key }}
       T3CODE_CLERK_JWT_TEMPLATE: ${{ inputs.clerk_jwt_template }}
       T3CODE_CLERK_CLI_OAUTH_CLIENT_ID: ${{ inputs.clerk_cli_oauth_client_id }}
       T3CODE_RELAY_URL: ${{ inputs.relay_url }}
+      T3CODE_DESKTOP_UPDATE_URL: ${{ inputs.update_url }}
     steps:
       # The launch check and the CLI archive smoke test both run the bundle.
       - name: Reject running an untrusted bundle
@@ -650,7 +658,7 @@ jobs:
           elif [[ "${{ inputs.platform }}" == "win" ]]; then
             # Embed the Linux CLI archive built by the same-arch Linux job as
             # the WSL runtime. Required for a working WSL backend on Windows.
-            args+=(--wsl-runtime "$GITHUB_WORKSPACE"/wsl-runtime/t3-*-linux-${{ inputs.arch }}.tar.gz)
+            args+=(--wsl-runtime "$GITHUB_WORKSPACE"/wsl-runtime/zharf-code-*-linux-${{ inputs.arch }}.tar.gz)
             if has_all \
               "$AZURE_TENANT_ID" \
               "$AZURE_CLIENT_ID" \
@@ -741,7 +749,7 @@ jobs:
             appimage=$(ls "$GITHUB_WORKSPACE"/release/*.AppImage)
             chmod +x "$appimage"
             (cd "$RUNNER_TEMP" && "$appimage" --appimage-extract >/dev/null)
-            xvfb-run -a "${check[@]}" --executable "$RUNNER_TEMP/squashfs-root/t3code"
+            xvfb-run -a "${check[@]}" --executable "$RUNNER_TEMP/squashfs-root/zharfcode"
           fi
 
       - name: Upload launch check output

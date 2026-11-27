@@ -1,0 +1,501 @@
+name: Zharf Code release
+
+# Builds Zharf Code for every platform on GitHub-hosted runners and attaches the installers,
+# update feeds, CLI archives and install scripts to a draft prerelease for the tag. Nothing here
+# reaches users: platform.zharf.ai/code serves releases, and the owner copies a release there
+# with the platform's deploy/publish-code-release.sh, which expects exactly the assets below.
+#
+# The desktop jobs call upstream's release-desktop.yml once per target, as release.yml does.
+# Builds are unsigned until the signing secrets are added (see docs at the end of this file).
+
+on:
+  push:
+    tags:
+      - "v*-zharf.*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to build, such as 0.1.12-zharf.1. Builds tag v<version> if it exists, else this branch."
+        required: true
+        type: string
+
+concurrency:
+  group: zharf-release-${{ inputs.version || github.ref_name }}
+  cancel-in-progress: false
+
+permissions:
+  # release-desktop.yml's Windows builds read this run's artifact list to wait for the Linux CLI
+  # archive. A called workflow gets no more than this.
+  actions: read
+  contents: read
+
+jobs:
+  preflight:
+    name: Resolve release
+    if: github.repository == 'ZharfAI/zharf-code'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      tag: ${{ steps.meta.outputs.tag }}
+      ref: ${{ steps.meta.outputs.ref }}
+      upstream_version: ${{ steps.meta.outputs.upstream_version }}
+      update_url: ${{ steps.meta.outputs.update_url }}
+    steps:
+      - id: meta
+        name: Resolve version and commit
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DISPATCH_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            raw="$DISPATCH_VERSION"
+          else
+            raw="$GITHUB_REF_NAME"
+          fi
+          version="${raw#v}"
+          # The same form deploy/publish-code-release.sh accepts.
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+-zharf\.[0-9]+$ ]]; then
+            echo "::error::Not a Zharf Code version: '$raw' (expected 0.1.12-zharf.1 or v0.1.12-zharf.1)."
+            exit 1
+          fi
+          tag="v$version"
+          ref="$GITHUB_SHA"
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            # A dispatch for an existing tag rebuilds the tagged commit, so the release always
+            # holds what the tag names.
+            if tagged="$(gh api "repos/$GITHUB_REPOSITORY/commits/refs/tags/$tag" --jq .sha 2>/dev/null)"; then
+              ref="$tagged"
+              echo "::notice::$tag exists; building its commit $ref."
+            fi
+          fi
+          {
+            echo "version=$version"
+            echo "tag=$tag"
+            echo "ref=$ref"
+            echo "upstream_version=${version%%-zharf.*}"
+            # The generic electron-updater feed baked into every desktop build.
+            echo "update_url=https://platform.zharf.ai/code/releases"
+          } >> "$GITHUB_OUTPUT"
+          echo "Zharf Code $version from $ref"
+
+  # The platform-independent JS (server bundle, web client, Electron main), built once and handed
+  # to every platform job as `js-bundle`, like release.yml's build_bundle. Zharf Connect is not
+  # deployed, so no Clerk or relay values are baked in and the cloud features stay off.
+  build_bundle:
+    name: Build JS bundle
+    needs: [preflight]
+    if: github.repository == 'ZharfAI/zharf-code'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          ref: ${{ needs.preflight.outputs.ref }}
+          sparse-checkout: |
+            /*
+            !/.repos/
+          sparse-checkout-cone-mode: false
+
+      - name: Setup dependencies
+        uses: ./.github/actions/setup-ci-deps
+        with:
+          install-args: --filter=t3... --filter=@t3tools/web... --filter=@t3tools/desktop... --filter=@t3tools/scripts...
+
+      - name: Align package versions to release version
+        env:
+          VERSION: ${{ needs.preflight.outputs.version }}
+        run: node scripts/update-release-package-versions.ts "$VERSION"
+
+      - name: Build JS bundle
+        run: vp run build:desktop:bundle
+
+      # Two paths under apps/ so the artifact root is apps/; release-desktop.yml downloads it
+      # into `apps` to restore both at their original locations.
+      - name: Upload JS bundle
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: js-bundle
+          path: |
+            apps/server/dist
+            apps/desktop/dist-electron
+          if-no-files-found: error
+          retention-days: 1
+
+  # One job per platform and architecture. Windows builds on Linux and runs its native checks on
+  # a Windows runner of its own architecture; it embeds the same-arch Linux CLI archive, which it
+  # finds by the Linux job's name, so the labels must stay "Linux x64" and "Linux arm64".
+  # macOS needs Xcode 26 (the Apple Speech helper targets macOS 26), hence macos-26; the x64
+  # build runs on the same arm64 runner, as upstream does.
+  # `secrets: inherit` passes the signing secrets once they exist; until then every build is
+  # unsigned and release-desktop.yml says so in its log.
+  desktop_mac_arm64:
+    name: Desktop macOS arm64
+    needs: [preflight, build_bundle]
+    if: github.repository == 'ZharfAI/zharf-code'
+    uses: ./.github/workflows/release-desktop.yml
+    secrets: inherit
+    with:
+      version: ${{ needs.preflight.outputs.version }}
+      ref: ${{ needs.preflight.outputs.ref }}
+      release_channel: stable
+      relay_client_tracing: false
+      clerk_publishable_key: ""
+      clerk_jwt_template: ""
+      clerk_cli_oauth_client_id: ""
+      relay_url: ""
+      update_url: ${{ needs.preflight.outputs.update_url }}
+      label: macOS arm64
+      runner: macos-26
+      platform: mac
+      target: dmg
+      arch: arm64
+      rust_target: aarch64-apple-darwin
+      resource_key: darwin-arm64
+      cli_archive: true
+      launch_check: true
+      # desktop_mac_x64 saves the shared pnpm store.
+      save_pnpm_store: false
+
+  desktop_mac_x64:
+    name: Desktop macOS x64
+    needs: [preflight, build_bundle]
+    if: github.repository == 'ZharfAI/zharf-code'
+    uses: ./.github/workflows/release-desktop.yml
+    secrets: inherit
+    with:
+      version: ${{ needs.preflight.outputs.version }}
+      ref: ${{ needs.preflight.outputs.ref }}
+      release_channel: stable
+      relay_client_tracing: false
+      clerk_publishable_key: ""
+      clerk_jwt_template: ""
+      clerk_cli_oauth_client_id: ""
+      relay_url: ""
+      update_url: ${{ needs.preflight.outputs.update_url }}
+      label: macOS x64
+      runner: macos-26
+      platform: mac
+      target: dmg
+      arch: x64
+      rust_target: x86_64-apple-darwin
+      resource_key: darwin-x64
+      # Node single-executables are unsupported on x64 macOS, so there is no CLI archive.
+      cli_archive: false
+
+  desktop_linux_x64:
+    name: Desktop Linux x64
+    needs: [preflight, build_bundle]
+    if: github.repository == 'ZharfAI/zharf-code'
+    uses: ./.github/workflows/release-desktop.yml
+    secrets: inherit
+    with:
+      version: ${{ needs.preflight.outputs.version }}
+      ref: ${{ needs.preflight.outputs.ref }}
+      release_channel: stable
+      relay_client_tracing: false
+      clerk_publishable_key: ""
+      clerk_jwt_template: ""
+      clerk_cli_oauth_client_id: ""
+      relay_url: ""
+      update_url: ${{ needs.preflight.outputs.update_url }}
+      label: Linux x64
+      runner: ubuntu-24.04
+      platform: linux
+      target: AppImage
+      arch: x64
+      rust_target: x86_64-unknown-linux-gnu
+      resource_key: linux-x64
+      cli_archive: true
+      launch_check: true
+
+  # node-pty compiles from source on Linux, so arm64 builds on arm64 hardware.
+  desktop_linux_arm64:
+    name: Desktop Linux arm64
+    needs: [preflight, build_bundle]
+    if: github.repository == 'ZharfAI/zharf-code'
+    uses: ./.github/workflows/release-desktop.yml
+    secrets: inherit
+    with:
+      version: ${{ needs.preflight.outputs.version }}
+      ref: ${{ needs.preflight.outputs.ref }}
+      release_channel: stable
+      relay_client_tracing: false
+      clerk_publishable_key: ""
+      clerk_jwt_template: ""
+      clerk_cli_oauth_client_id: ""
+      relay_url: ""
+      update_url: ${{ needs.preflight.outputs.update_url }}
+      label: Linux arm64
+      runner: ubuntu-24.04-arm
+      platform: linux
+      target: AppImage
+      arch: arm64
+      rust_target: aarch64-unknown-linux-gnu
+      resource_key: linux-arm64
+      cli_archive: true
+
+  desktop_win_x64:
+    name: Desktop Windows x64
+    needs: [preflight, build_bundle]
+    if: github.repository == 'ZharfAI/zharf-code'
+    uses: ./.github/workflows/release-desktop.yml
+    secrets: inherit
+    with:
+      version: ${{ needs.preflight.outputs.version }}
+      ref: ${{ needs.preflight.outputs.ref }}
+      release_channel: stable
+      relay_client_tracing: false
+      clerk_publishable_key: ""
+      clerk_jwt_template: ""
+      clerk_cli_oauth_client_id: ""
+      relay_url: ""
+      update_url: ${{ needs.preflight.outputs.update_url }}
+      label: Windows x64
+      runner: ubuntu-24.04
+      verify_runner: windows-2025
+      platform: win
+      target: nsis
+      arch: x64
+      rust_target: x86_64-pc-windows-msvc
+      resource_key: win32-x64
+      cli_archive: true
+
+  desktop_win_arm64:
+    name: Desktop Windows arm64
+    needs: [preflight, build_bundle]
+    if: github.repository == 'ZharfAI/zharf-code'
+    uses: ./.github/workflows/release-desktop.yml
+    secrets: inherit
+    with:
+      version: ${{ needs.preflight.outputs.version }}
+      ref: ${{ needs.preflight.outputs.ref }}
+      release_channel: stable
+      relay_client_tracing: false
+      clerk_publishable_key: ""
+      clerk_jwt_template: ""
+      clerk_cli_oauth_client_id: ""
+      relay_url: ""
+      update_url: ${{ needs.preflight.outputs.update_url }}
+      label: Windows arm64
+      runner: ubuntu-24.04
+      verify_runner: windows-11-arm
+      platform: win
+      target: nsis
+      arch: arm64
+      rust_target: aarch64-pc-windows-msvc
+      resource_key: win32-arm64
+      cli_archive: true
+
+  release:
+    name: Create GitHub release
+    needs:
+      [
+        preflight,
+        desktop_mac_arm64,
+        desktop_mac_x64,
+        desktop_linux_x64,
+        desktop_linux_arm64,
+        desktop_win_x64,
+        desktop_win_arm64,
+      ]
+    if: github.repository == 'ZharfAI/zharf-code'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ needs.preflight.outputs.version }}
+      TAG: ${{ needs.preflight.outputs.tag }}
+      REF: ${{ needs.preflight.outputs.ref }}
+      UPSTREAM_VERSION: ${{ needs.preflight.outputs.upstream_version }}
+      UPDATE_URL: ${{ needs.preflight.outputs.update_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          ref: ${{ needs.preflight.outputs.ref }}
+          sparse-checkout: |
+            /*
+            !/.repos/
+          sparse-checkout-cone-mode: false
+
+      - name: Setup dependencies
+        uses: ./.github/actions/setup-ci-deps
+        with:
+          install-args: --filter=@t3tools/scripts...
+
+      - name: Download all desktop artifacts
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: desktop-*
+          merge-multiple: true
+          path: release-assets
+
+      - name: Download all CLI archives
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: cli-*
+          merge-multiple: true
+          path: release-assets
+
+      # builder-debug.yml is electron-builder's config dump (each job writes one under --verbose),
+      # not a feed; publish-code-release.sh reads every *.yml as a feed.
+      - name: Drop build logs
+        run: rm -f release-assets/builder-debug.yml
+
+      # electron-updater reads one feed per platform and picks the entry for its arch; this
+      # merges each macOS and Windows arm64/x64 pair into latest-mac.yml and latest.yml.
+      - name: Merge desktop update feeds
+        run: node scripts/merge-release-update-manifests.ts release-assets
+
+      # Installers and `zharf-code update` verify the CLI archives against this file, so it is
+      # written from the bytes that get uploaded.
+      - name: Write CLI archive checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd release-assets
+          shopt -s nullglob
+          archives=(zharf-code-*.tar.gz zharf-code-*.zip)
+          if [[ ${#archives[@]} -eq 0 ]]; then
+            echo "::error::No CLI archives were produced."
+            exit 1
+          fi
+          sha256sum "${archives[@]}" > SHA256SUMS
+          cat SHA256SUMS
+
+      # publish-code-release.sh serves these at platform.zharf.ai/code/{install.sh,install.ps1,
+      # schema/t3.json}.
+      - name: Add install scripts and the t3.json schema
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp scripts/install.sh scripts/install.ps1 release-assets/
+          (cd scripts && node --input-type=module -e '
+            import { buildT3ProjectFileJsonSchema } from "@t3tools/shared/t3ProjectFile";
+            process.stdout.write(`${JSON.stringify(buildT3ProjectFileJsonSchema(), null, 2)}\n`);
+          ') > release-assets/t3.schema.json
+          node -e 'JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"))' release-assets/t3.schema.json
+
+      # The checks publish-code-release.sh makes, run here so a missing platform, a renamed file or
+      # a stale feed fails this run instead of the publish. The file patterns are the ones its
+      # download-page manifest looks for.
+      - name: Check release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd release-assets
+          node - "$VERSION" <<'EOF'
+          const fs = require("fs");
+          const crypto = require("crypto");
+          const version = process.argv[2];
+          const v = version.replace(/[.]/g, "\\.");
+          const names = fs.readdirSync(".");
+          const problems = [];
+          const expect = (label, re) => {
+            const found = names.filter((n) => re.test(n));
+            if (found.length !== 1) problems.push(`${label}: expected one file matching ${re}, found [${found.join(", ")}]`);
+          };
+          expect("mac-arm64 dmg", new RegExp(`-${v}-arm64\\.dmg$`));
+          expect("mac-x64 dmg", new RegExp(`-${v}-x64\\.dmg$`));
+          expect("mac-arm64 zip", new RegExp(`^Zharf-Code-${v}-arm64\\.zip$`));
+          expect("mac-x64 zip", new RegExp(`^Zharf-Code-${v}-x64\\.zip$`));
+          expect("win-x64 exe", new RegExp(`-${v}-x64\\.exe$`));
+          expect("win-arm64 exe", new RegExp(`-${v}-arm64\\.exe$`));
+          expect("linux-x64 AppImage", /x86_64\.AppImage$/);
+          expect("linux-arm64 AppImage", /arm64\.AppImage$/);
+          expect("linux-x64 deb", new RegExp(`-${v}-amd64\\.deb$`));
+          expect("linux-arm64 deb", new RegExp(`-${v}-arm64\\.deb$`));
+          for (const key of ["darwin-arm64", "linux-x64", "linux-arm64"]) {
+            expect(`CLI ${key}`, new RegExp(`^zharf-code-${v}-${key}\\.tar\\.gz$`));
+          }
+          for (const key of ["win32-x64", "win32-arm64"]) {
+            expect(`CLI ${key}`, new RegExp(`^zharf-code-${v}-${key}\\.zip$`));
+          }
+          for (const name of ["SHA256SUMS", "install.sh", "install.ps1", "t3.schema.json"]) {
+            if (!names.includes(name)) problems.push(`missing ${name}`);
+          }
+          // The app, install.sh and `zharf-code update` read latest*.yml.
+          const feeds = names.filter((n) => n.endsWith(".yml")).sort();
+          const wantFeeds = ["latest-linux-arm64.yml", "latest-linux.yml", "latest-mac.yml", "latest.yml"];
+          if (feeds.join() !== wantFeeds.join()) problems.push(`feeds are [${feeds.join(", ")}], expected [${wantFeeds.join(", ")}]`);
+          for (const feed of feeds) {
+            const text = fs.readFileSync(feed, "utf8");
+            // electron-builder writes the version bare, the merge script quotes it.
+            const feedVersion = /^version: '?([^'\n]+)'?$/m.exec(text)?.[1];
+            if (feedVersion !== version) problems.push(`${feed} is for ${feedVersion}, not ${version}`);
+            const files = [...text.matchAll(/- url: (.+)\n\s+sha512: (.+)/g)].map((m) => [m[1].trim(), m[2].trim()]);
+            if (files.length === 0) problems.push(`${feed} names no files`);
+            for (const [name, sha512] of files) {
+              if (!names.includes(name)) { problems.push(`${feed} names missing ${name}`); continue; }
+              const actual = crypto.createHash("sha512").update(fs.readFileSync(name)).digest("base64");
+              if (actual !== sha512) problems.push(`${name}: sha512 does not match ${feed}`);
+            }
+          }
+          if (problems.length > 0) {
+            for (const p of problems) console.log(`::error::${p}`);
+            process.exit(1);
+          }
+          console.log(`All ${names.length} assets are present and match their feeds.`);
+          EOF
+          sha256sum -c SHA256SUMS
+
+      # The update feed reaches the build only through release-desktop.yml's update_url input;
+      # without it the apps would look for updates on GitHub.
+      - name: Check the update feed baked into the app
+        shell: bash
+        run: |
+          set -euo pipefail
+          config="$(unzip -p "release-assets/Zharf-Code-${VERSION}-arm64.zip" '*.app/Contents/Resources/app-update.yml')"
+          echo "$config"
+          grep -Eqx "provider: '?generic'?" <<<"$config"
+          grep -Fqx -e "url: ${UPDATE_URL}" -e "url: '${UPDATE_URL}'" <<<"$config"
+          grep -Eqx "channel: '?latest'?" <<<"$config"
+
+      # A draft: the owner checks it, runs publish-code-release.sh and publishes it. If `gh release
+      # download` there cannot see the draft, publish the prerelease first: nothing reads GitHub
+      # releases (the app, installers and CLI use platform.zharf.ai). Rerunning updates a draft
+      # but never a published release.
+      - name: Create or update the draft prerelease
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          files=(release-assets/*)
+          if draft="$(gh release view "$TAG" --json isDraft --jq .isDraft 2>/dev/null)"; then
+            if [[ "$draft" != "true" ]]; then
+              echo "::error::$TAG is already published; this run would replace its files. Delete it or release a new -zharf.N."
+              exit 1
+            fi
+            gh release upload "$TAG" "${files[@]}" --clobber
+          else
+            cat > release-notes.md <<EOF
+          Zharf Code ${VERSION}, built on T3 Code v${UPSTREAM_VERSION}, from \`${REF}\`.
+
+          Download and update from https://platform.zharf.ai/code. The macOS and Windows builds are not code-signed yet.
+          EOF
+            gh release create "$TAG" "${files[@]}" \
+              --draft --prerelease --latest=false \
+              --target "$REF" \
+              --title "Zharf Code ${TAG}" \
+              --notes-file release-notes.md
+          fi
+          echo "Draft release: $(gh release view "$TAG" --json url --jq .url)"
+
+# Signing, when the secrets are added (Settings > Secrets and variables > Actions):
+#   macOS: secrets CSC_LINK (base64 .p12 of the Developer ID Application certificate),
+#   CSC_KEY_PASSWORD, APPLE_API_KEY (.p8 contents), APPLE_API_KEY_ID, APPLE_API_ISSUER and
+#   MACOS_PROVISIONING_PROFILE (base64 Developer ID profile for ai.zharf.code), plus variables
+#   APPLE_TEAM_ID and CLERK_PASSKEY_RP_DOMAINS. release-desktop.yml signs and notarizes once the
+#   first five are set and fails if the profile or team id is then missing, and the packager
+#   (resolveMacPasskeySigningConfiguration) needs a passkey domain for every signed macOS build.
+#   Zharf Code has no passkey sign-in, so either make a profile with an Associated Domain or
+#   change the packager to sign without the passkey entitlements.
+#   Windows: the AZURE_* Trusted Signing secrets; none are planned, so Windows stays unsigned.

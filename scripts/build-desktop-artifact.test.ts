@@ -554,6 +554,39 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
     ),
   );
 
+  it.effect("names the latest channel in a Zharf Code feed, whatever the version's suffix", () =>
+    Effect.gen(function* () {
+      const release = yield* createBuildConfig(
+        "mac",
+        "dmg",
+        "0.1.12-zharf.1",
+        false,
+        false,
+        undefined,
+        undefined,
+      );
+
+      assert.deepStrictEqual(release.publish, [
+        {
+          provider: "generic",
+          url: "https://platform.zharf.ai/code/releases",
+          channel: "latest",
+        },
+      ]);
+    }).pipe(
+      Effect.provide(
+        ConfigProvider.layer(
+          ConfigProvider.fromEnv({
+            env: {
+              T3CODE_DESKTOP_UPDATE_URL: "https://platform.zharf.ai/code/releases",
+              GITHUB_REPOSITORY: "zharfai/zharf-code",
+            },
+          }),
+        ),
+      ),
+    ),
+  );
+
   it.effect("names the Electron window class in the Linux desktop entry", () =>
     Effect.gen(function* () {
       const linux = yield* createBuildConfig(
