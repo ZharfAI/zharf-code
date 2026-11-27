@@ -18,6 +18,24 @@ export interface Rule {
 const TEST_FILE =
   /\.(test|integration|spec)\.[cm]?[jt]sx?$|(^|\/)(test|tests|__tests__|fixtures)\//;
 const CATALOG = /\/i18n\/translations\/[^/]+\.json$|^docs\//;
+/** Tests whose T3 strings are sample data, not the product's names: a username or tenant, a
+ *  search query, a project, a repository or clone folder to parse. The repository, name and
+ *  command rules leave them alone, so input and expectation stay the same word. */
+const SAMPLE_DATA = new RegExp(
+  [
+    /^apps\/server\/src\/feedback\/scrubFeedback\.test\.ts$/, // "t3", a two-letter username
+    /^apps\/server\/src\/sourceControl\/SourceControlRepositoryService\.test\.ts$/, // clone folder
+    /^apps\/web\/src\/components\/CommandPalette\.logic\.test\.ts$/, // "t3" finds project t3code
+    /^packages\/client-runtime\/src\/operations\/projects\.test\.ts$/, // clone folder from a URL
+    /^packages\/client-runtime\/src\/state\/filesystem\.test\.ts$/, // "t3" completes t3code
+    /^packages\/shared\/src\/observability\.test\.ts$/, // x-tenant=t3
+    /^packages\/shared\/src\/paletteSearch\.test\.ts$/, // queries against T3 titles and projects
+    /^packages\/source-control-bitbucket\/src\/server\/BitbucketApi\.test\.ts$/, // a fork's name
+    /^packages\/source-control-github\/src\/server\/GitHubAppSignIn\.test\.ts$/, // account login
+  ]
+    .map((re) => re.source)
+    .join("|"),
+);
 
 export const BRAND = {
   name: "Zharf Code",
@@ -35,6 +53,14 @@ export const BRAND = {
 
 const SITE_HOST_PATH = "platform.zharf.ai/code";
 
+/** A GitHub heading anchor as the renamed heading spells it: "T3 Code" and "T3 Connect" become
+ *  "zharf-code" and "zharf-connect", the `t3` command "zharf-code"; "T3 Chat" stays. */
+function brandAnchor(anchor: string): string {
+  return anchor
+    .replace(/(?<![a-z0-9])t3-(?=(?:code|connect)(?![a-z0-9]))/g, "zharf-")
+    .replace(/(?<![a-z0-9])t3(?=-command(?![a-z0-9]))/g, BRAND.command);
+}
+
 export const RULES: readonly Rule[] = [
   // ── Repository and web addresses ─────────────────────────────────────────────────────────
   // Lowercase stays lowercase: code compares repositories case-insensitively by lowercasing them.
@@ -42,11 +68,20 @@ export const RULES: readonly Rule[] = [
     id: "repo",
     find: /pingdotgg\/t3code/gi,
     replace: (match) => (match === match.toLowerCase() ? BRAND.repo.toLowerCase() : BRAND.repo),
+    not: SAMPLE_DATA,
   },
   {
     id: "repo-pair",
     find: /\bowner(["']?:\s*)(["'])pingdotgg\2(,\s*["']?(?:repo|name)["']?:\s*)(["'])t3code\4/g,
     replace: "owner$1$2zharfai$2$3$4zharf-code$4",
+    not: SAMPLE_DATA,
+  },
+  // The same pair passed as two arguments: ids("pingdotgg", "t3code")
+  {
+    id: "repo-args",
+    find: /(["'])pingdotgg\1(,\s*)(["'])t3code\3/g,
+    replace: "$1zharfai$1$2$3zharf-code$3",
+    not: SAMPLE_DATA,
   },
   { id: "mcp-app-name", find: /\bT3%20Code\b/g, replace: "Zharf%20Code" },
   // The hosted web app needs an origin of its own (code compares URL origins), so it gets a
@@ -80,7 +115,12 @@ export const RULES: readonly Rule[] = [
     replace: "$1platform.zharf.ai/code",
   },
   { id: "relay", find: /\brelay\.t3\.codes\b/g, replace: "relay.zharf.ai" },
-  { id: "clerk", find: /\bclerk\.t3\.codes\b/g, replace: "accounts.zharf.ai" },
+  // Host names compare case-insensitively, so an upper-case spelling stays upper case.
+  {
+    id: "clerk",
+    find: /\bclerk\.t3\.codes\b/gi,
+    replace: (match) => (match === match.toUpperCase() ? "ACCOUNTS.ZHARF.AI" : "accounts.zharf.ai"),
+  },
   { id: "ingest", find: /\bingest\.t3\.codes\b/g, replace: "ingest.zharf.ai" },
   {
     id: "email",
@@ -89,6 +129,16 @@ export const RULES: readonly Rule[] = [
       /^(noreply|bench)@/.test(match) ? match.replace(/@.*/, "@zharf.ai") : "security@zharf.ai",
   },
   { id: "site", find: /(https?:\/\/)?(?<![\w.-])t3\.codes\b/g, replace: `$1${SITE_HOST_PATH}` },
+  // Heading anchors: the guides' headings are renamed, so links to them follow ("#the-t3-command"
+  // is now "#the-zharf-code-command"). Markdown links, and the troubleshooting sections the app
+  // links to as "More info". Not file names (t3-connect-troubleshooting.md) nor "T3 Chat".
+  { id: "doc-anchor", find: /(?<=\]\([^)\s]*#)[a-z0-9-]+(?=\))/g, replace: brandAnchor },
+  {
+    id: "troubleshooting-anchor",
+    find: /(?<=["'`])[a-z0-9-]*\bt3-(?:code|connect)\b[a-z0-9-]*(?=["'`])/g,
+    replace: brandAnchor,
+    only: /^packages\/(contracts\/src\/environmentHttp|client-runtime\/src\/connection\/diagnosis)(\.test)?\.ts$/,
+  },
 
   // ── App identity ─────────────────────────────────────────────────────────────────────────
   { id: "app-id", find: /\bcom\.t3tools\.t3code\b/g, replace: BRAND.appId },
@@ -96,14 +146,38 @@ export const RULES: readonly Rule[] = [
   { id: "wm-class", find: /\bcom\.t3tools\.T3Code\b/g, replace: BRAND.wmClass },
   { id: "app-group", find: /\bgroup\.com\.t3tools\./g, replace: "group.ai.zharf." },
   { id: "policy-registry", find: /T3Tools(\\+)T3Code/g, replace: "ZharfAI$1ZharfCode" },
-  { id: "policy-folder", find: /(?<=[/\\])T3Code(?=[/\\])/g, replace: "ZharfCode" },
+  // A folder on disk, not a repository in a URL (github.com/T3Tools/T3Code/pull/123)
+  {
+    id: "policy-folder",
+    find: /(?<=[/\\])(?<!:\/\/[^\s"'`]*)T3Code(?=[/\\])/g,
+    replace: "ZharfCode",
+  },
   { id: "policy-etc", find: /\/etc\/t3code\b/g, replace: "/etc/zharf-code" },
   {
     id: "scheme-regex",
     find: /(?<=[\^/])t3code(?=\((?:\?:)?[-\[\]a-z|+]+\)\??:)/g,
     replace: BRAND.scheme,
   },
+  // A URL scheme matched by a regex literal: /^t3code-dev:\/\//
+  {
+    id: "scheme-regex-literal",
+    find: /(?<=\^)t3code(-dev|-preview)?(?=:\\\/\\\/)/g,
+    replace: `${BRAND.scheme}$1`,
+  },
   { id: "scheme-default", find: /(?<=\bscheme = ")t3code(?=")/g, replace: BRAND.scheme },
+  // The scheme an app registers or a handler is given: { scheme: "t3code-dev" } (the phone app's
+  // Expo config, the desktop protocol and Linux URL handler)
+  {
+    id: "scheme-key",
+    find: /(?<=\bscheme:\s*["'])t3code(-dev|-preview)?(?=["'])/g,
+    replace: `${BRAND.scheme}$1`,
+  },
+  // …and allowed as a source in the protocol's Content-Security-Policy: "img-src 'self' t3code-dev:"
+  {
+    id: "scheme-csp",
+    find: /(?<=-src 'self' )t3code(-dev|-preview)?(?=:\s)/g,
+    replace: `${BRAND.scheme}$1`,
+  },
   {
     id: "scheme-line",
     find: /^.*:\/\/.*$/gm,
@@ -119,22 +193,25 @@ export const RULES: readonly Rule[] = [
     replace: `${BRAND.scheme}$1`,
   },
   { id: "scheme-url", find: /\bt3code(-dev|-preview)?:\/\//g, replace: `${BRAND.scheme}$1://` },
-  // URL.protocol comparisons: "t3code:" (not localStorage keys, which go on after the colon)
+  // URL.protocol comparisons: "t3code:" (not localStorage keys, which go on after the colon, nor
+  // the "t3code:<tool>" MCP label prefix the tool presentation test lists)
   {
     id: "scheme-protocol",
     find: /(?<=["'`])t3code(-dev|-preview)?(?=:["'`])/g,
     replace: `${BRAND.scheme}$1`,
+    not: /t3McpToolPresentation\.test\.ts$/,
   },
   {
     id: "scheme-const",
     find: /(?<=["'])t3code(-dev)?(?=["'])/g,
     replace: `${BRAND.scheme}$1`,
-    only: /(ElectronProtocol\.ts|electron-launcher\.mjs|httpCors\.ts|DesktopEnvironment\.ts|build-desktop-artifact(\.test)?\.ts)$/,
+    only: /(ElectronProtocol(\.test)?\.ts|electron-launcher\.mjs|httpCors\.ts|DesktopEnvironment\.ts|build-desktop-artifact(\.test)?\.ts|providerAuthReturnUrl\.test\.ts)$/,
   },
+  // The profile folders, and the legacy "t3code" folder whose Windows keys are copied
   {
     id: "profile-dir",
-    find: /(?<=["'])t3code-(v2|dev)(?=["'])/g,
-    replace: "zharf-code-$1",
+    find: /(?<=["'])t3code(-v2|-dev)?(?=["'])/g,
+    replace: "zharf-code$1",
     only: /DesktopUserData(\.test)?\.ts$/,
   },
   {
@@ -172,11 +249,20 @@ export const RULES: readonly Rule[] = [
     find: /(?<=<(?:binary|icon type="stock")>)t3code(?=<)/g,
     replace: BRAND.command,
   },
-  // The name people give our MCP server in other agents ("hermes mcp add t3code …")
+  // The name people give our MCP server in other agents ("hermes mcp add t3code …"); a line that
+  // merely says "mcp" (a search query "trim mcp") is not one
   {
     id: "mcp-server-name",
-    find: /^.*\bmcp(?:\b|_servers).*$/gm,
+    find: /^.*\bmcp(?:\s+(?:add|login|remove|get)\b|_servers).*$/gm,
     replace: (line) => line.replace(/(?<![\w./@#:-])t3code(?![\w/@#:-]|\.\w)/g, BRAND.command),
+  },
+  // The MCP server introduces itself as "Zharf Code" (McpServer name), and a provider that titles
+  // a call with that name ("Zharf Code t3_thread_list") must still be read as our tool.
+  {
+    id: "mcp-display-name",
+    find: /(?<=\{1,2\}\)\?)t3\[-_ \]\?code/g,
+    replace: "(?:zharf[-_ ]?code|t3[-_ ]?code)",
+    only: /^packages\/(shared\/src\/t3McpToolPresentation|provider-acp\/src\/server\/runtimeModel)\.ts$/,
   },
   // Sample shell prompts in the appearance previews
   {
@@ -188,11 +274,23 @@ export const RULES: readonly Rule[] = [
   // Folders, services and names that would collide with an official T3 Code on the same machine.
   // The legacy-profile paths in DesktopUserData/DesktopLegacyLocalStorage then point at Zharf
   // folders that never existed, so nothing is ever copied from a T3 Code profile.
+  // join(dataHome, "t3code", …) and join(dataHome, "t3code/extension-backups")
   {
     id: "path-segment",
-    find: /(?<=\bjoin\([^()]*?)(["'])t3code\1/g,
-    replace: `"${BRAND.command}"`,
+    find: /(?<=\bjoin\([^()]*?)(["'])t3code(?=\1|\/)/g,
+    replace: `$1${BRAND.command}`,
+    not: SAMPLE_DATA,
   },
+  // The same folder under a Windows profile: join(…, "AppData", "Local", "t3code", …)
+  {
+    id: "local-app-data",
+    find: /(?<=["']Local["'],\s*)(["'])t3code\1/g,
+    replace: `$1${BRAND.command}$1`,
+  },
+  // The Windows boot service's task file, beside its systemd unit and launchd plist
+  { id: "task-file", find: /\bt3code(?=-task\.xml\b)/g, replace: BRAND.command },
+  // The CLI's compile cache under XDG_CACHE_HOME: …/cache/t3code/compile-cache
+  { id: "compile-cache-dir", find: /(?<=\/)t3code(?=\/compile-cache\b)/g, replace: BRAND.command },
   {
     id: "legacy-profile",
     find: /(?<=V1_PROFILE_NAMES = \[[^\]]*)"t3code"/g,
@@ -208,7 +306,8 @@ export const RULES: readonly Rule[] = [
   },
   {
     id: "os-names",
-    find: /\bt3code(?=-\$\{domain\}|-<domain>|-\$\{name\}-|-\$\{userKey\}|-provider-updates\b|-backend-recovery\b|\.mobileconfig\b|[-/]pr-)|(?<=startsWith\(")t3code(?=-")|(?<=\b90-)t3code(?=-protect\.conf)|(?<=\^)t3code(?=\[\/-\]pr-)/g,
+    // The scheduled task t3code-${domain}-${user} is spelled out in tests: t3code-PC-theo
+    find: /\bt3code(?=-\$\{domain\}|-<domain>|-PC-|-\$\{name\}-|-\$\{userKey\}|-provider-updates\b|-backend-recovery\b|\.mobileconfig\b|[-/]pr-)|(?<=startsWith\(")t3code(?=-")|(?<=\b90-)t3code(?=-protect\.conf)|(?<=\^)t3code(?=\[\/-\]pr-)/g,
     replace: BRAND.command,
   },
   { id: "log-tag", find: /\[t3code\]/g, replace: `[${BRAND.command}]` },
@@ -218,10 +317,12 @@ export const RULES: readonly Rule[] = [
     find: /(?<=["']user-agent["']:\s*["'])t3code(?=["'])/gi,
     replace: BRAND.command,
   },
+  // Not a host in a regex: /preview\.t3\.codes/
   {
     id: "home-dir",
-    find: /(?<=^|[~/"'`\\\s]|\$HOME\/|%USERPROFILE%\\)\.t3(?![\w.-])/gm,
+    find: /(?<=^|[~/"'`\\\s]|\$HOME\/|%USERPROFILE%\\)\.t3(?![\w.-]|\\\.)/gm,
     replace: BRAND.homeDir,
+    not: SAMPLE_DATA,
   },
 
   // ── The command: `t3` becomes `zharf-code` ───────────────────────────────────────────────
@@ -246,6 +347,15 @@ export const RULES: readonly Rule[] = [
     only: TEST_FILE,
   },
   { id: "branch-default", find: /(?<=[`"'])t3\/(?=[`"'])/g, replace: "zharf/" },
+  // The flat form used when a "zharf" branch blocks nested refs: "zharf-<hex>", typed or in part
+  // ("t3-abcd"); not ids that are only digits ("t3-0", Pi's request ids)
+  {
+    id: "branch-flat",
+    find: /(?<![\w.@#$-])t3-(?=(?=\d*[a-f])[0-9a-f]{4,8}(?![\w-])|<hex>)/g,
+    replace: "zharf-",
+  },
+  // …and the branch that blocks them: "a plain t3 branch", "a `t3` branch"
+  { id: "branch-word", find: /(?<![\w./@#$-])t3(?=[`"']? branch\b)/g, replace: "zharf" },
   // The package.json bin entry and the code that reads or writes it
   { id: "cli-bin-key", find: /(?<=\{ )t3(?=: Schema\.String \})/g, replace: `"${BRAND.command}"` },
   { id: "cli-bin-write", find: /(?<=\bbin: \{ )t3(?=:)/g, replace: `"${BRAND.command}"` },
@@ -270,19 +380,27 @@ export const RULES: readonly Rule[] = [
     find: /(?<![\w./@#-])t3@(?=[\d$<{v]|latest|next|nightly)/g,
     replace: `${BRAND.command}@`,
   },
-  // Archive names: "t3-${version}-…", "t3-$version-win32-$arch", "t3-<version>-…"
+  // Archive names: "t3-${version}-…", "t3-$version-win32-$arch", "t3-<version>-…", "t3-1.2.3-…";
+  // not Pi's RPC request ids (`t3-${nextRequestId++}`, "t3-0"), which its replay testkit matches
   {
     id: "cli-archive",
-    find: /(?<=["'`/ *]|\\[nrt])t3-(?=\$\{|\$[A-Za-z_]|<ver|v?\d)/g,
+    find: /(?<=["'`/ *]|\\[nrt])t3-(?=\$\{(?!nextRequestId\b)|\$[A-Za-z_]|<ver|v?\d+\.\d)/g,
     replace: `${BRAND.command}-`,
   },
   { id: "cli-escaped", find: /(?<=\\[nrt])t3(?= [a-z])/g, replace: BRAND.command }, // printf '\nt3 install: …'
+  // The name in lower case, as people type it into a search ("t3 code"): not the command
+  {
+    id: "name-lower",
+    find: /\bt3( +)code\b/g,
+    replace: "zharf$1code",
+    not: /\.(c|h|cc|swift|kt|rs)$/,
+  },
   // A path ending in the command: ${bin_dir}/t3, bin/t3, $1/t3
   {
     id: "cli-path",
     find: /(?<=[/\\])t3(?=["'`\s;:)\]%]|\$\/|\\[nrt]|$)/gm,
     replace: BRAND.command,
-    not: /\.[ch]$/,
+    not: new RegExp(`\\.[ch]$|${SAMPLE_DATA.source}`),
   },
   // The word itself, in prose, messages and command lines; not code named t3
   {
@@ -302,18 +420,23 @@ export const RULES: readonly Rule[] = [
       if (/^\s*:\s*[A-Za-z]/.test(after) && !/["'`]$/.test(before)) return match; // { t3: Schema }
       return BRAND.command;
     },
-    not: /\.(c|h|cc|swift|kt|rs)$/,
+    not: new RegExp(`\\.(c|h|cc|swift|kt|rs)$|${SAMPLE_DATA.source}`),
   },
 
   // ── Names people read ────────────────────────────────────────────────────────────────────
   // \s+ keeps a name that JSX or Markdown wrapped across lines ("…through T3\n  Connect.")
-  { id: "name", find: /\bT3(\s+)Code\b/g, replace: "Zharf$1Code" },
+  { id: "name", find: /\bT3(\s+)Code\b/g, replace: "Zharf$1Code", not: SAMPLE_DATA },
+  { id: "name-plus", find: /\bT3\+Code\b/g, replace: "Zharf+Code" }, // a form-encoded body
   { id: "name-hyphen", find: /\bT3-Code\b/g, replace: "Zharf-Code" },
-  { id: "connect", find: /\bT3(\s+)Connect\b/g, replace: "Zharf$1Connect" },
+  { id: "connect", find: /\bT3(\s+)Connect\b/g, replace: "Zharf$1Connect", not: SAMPLE_DATA },
   { id: "connect-hyphen", find: /\bT3-Connect\b/g, replace: "Zharf-Connect" },
   { id: "company", find: /\bT3(\s+)Tools\b(?!, Inc\.)/g, replace: BRAND.company },
-  // "T3-thread", "T3-owned", Swedish "T3-tråd"
-  { id: "compound-lower", find: /(?<![\w$@/.+=-])T3-(?=[a-zà-ÿ])/g, replace: "Zharf Code-" },
+  // "T3-thread", "T3-owned", Swedish "T3-tråd"; not "T3-code.<tool>", the MCP server's name
+  {
+    id: "compound-lower",
+    find: /(?<![\w$@/.+=-])T3-(?=[a-zà-ÿ])(?!code\b)/g,
+    replace: "Zharf Code-",
+  },
   // German "T3-Thread" in catalogs and docs, but not the T3-Mode-Limit or T3-Sender headers
   {
     id: "compound-upper",
@@ -325,14 +448,15 @@ export const RULES: readonly Rule[] = [
   // "the T3 server", "T3's browser"; not T3.workflow(…), T3_FOO, T3Wordmark, T3-INSIGHT, T3 Chat
   {
     id: "bare",
-    // not the `T3: {…}` global, nor `T3${name}Stream`-style generated identifiers
-    find: /(?<![\w$@/.+=\\-])T3(?![\w$-]|\.[A-Za-z_]| Chat\b|:\s*[{[(])/g,
+    // not the `T3: {…}` global, nor `T3${name}Stream`-style generated identifiers, nor the global
+    // a workflow script destructures (`const { workflow } = T3;`) or a guide names as code (`T3`)
+    find: /(?<![\w$@/.+=\\-])(?<!=\s+)(?!(?<=`)T3`)T3(?![\w$-]|\.[A-Za-z_]| Chat\b|:\s*[{[(])/g,
     replace: BRAND.name,
     not: /\.e2e\.[cm]?[jt]sx?$|^scripts\/scenarios\/|\.test\.[cm]?[jt]sx?$/, // scenarios type their fixture as T3
   },
   {
     id: "bare-tests",
-    find: /(?<![\w$@/.+=\\"'`-])T3(?![\w$"'`-]|\.[A-Za-z_]| Chat\b|:\s*[{[(])/g,
+    find: /(?<![\w$@/.+=\\"'`-])(?<!=\s+)T3(?![\w$"'`-]|\.[A-Za-z_]| Chat\b|:\s*[{[(])/g,
     replace: BRAND.name,
     only: /\.test\.[cm]?[jt]sx?$/,
   },
@@ -346,7 +470,9 @@ export const SKIP: readonly RegExp[] = [
   /^pnpm-lock\.yaml$/,
   /^zharf\//, // this tool
   /^\.repos\//,
-  /^\.github\//, // replaced by the fork's own workflows
+  // replaced by the fork's own workflows; not the triage playbook and the issue form it files
+  // with, which `zharf-code triage` fetches from the repository at run time
+  /^\.github\/(?!triage\/|ISSUE_TEMPLATE\/)/,
   /^apps\/marketing\//, // T3's own site and legal pages: replaced, not rebranded
   /^oxlint-plugin-t3code\//,
   /(^|\/)deps\/[^/]+\.tgz$/,

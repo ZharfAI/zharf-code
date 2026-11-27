@@ -56,6 +56,24 @@ To try a tag without touching `upstream-rebranded`: `SYNC_BRANCH=try/<tag> zharf
 
 It is idempotent: running it on a rebranded tree changes nothing.
 
+## The Zharf agents
+
+Zharf Code adds no driver of its own. "Sign in with Zharf" saves a platform key, and the app
+keeps provider instances of upstream's own drivers pointed at platform.zharf.ai. Checked live on
+2026-11-27 (Claude Code 2.1.332, Codex 0.169, through the app server):
+
+- **Claude Code** (`claudeAgent`): `ANTHROPIC_BASE_URL=https://platform.zharf.ai/anthropic`,
+  `ANTHROPIC_AUTH_TOKEN=<key>`, `ANTHROPIC_API_KEY=""`, its own `homePath`, and
+  `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1`: without it each turn also calls
+  api.anthropic.com, which is blocked from Iran.
+- **Codex** (`codex`, `setupMode: "existing"`, its own `homePath`): `ZHARF_API_KEY=<key>` and
+  launch arguments `-c model_provider="zharf" -c model_providers.zharf.{name,base_url,env_key,
+  wire_api="responses"}`. A turn then contacts only platform.zharf.ai.
+- **Models**: neither agent lists the platform's models by itself (Claude Code's gateway
+  discovery did not, Codex lists its own catalogue), and the app refuses a model the instance
+  does not advertise. So the platform's coding models (text out, tool calls) are written into
+  each instance's `customModels`; DeepSeek, GLM and GPT models then run in both agents.
+
 ## Brand
 
 - Name: Zharf Code. Command: `zharf-code`. App id: `ai.zharf.code`. URL scheme: `zharfcode://`.

@@ -18,6 +18,7 @@ const KEEP: readonly RegExp[] = [
   /\bt3\.json\b|\bt3ProjectFile\b|\bt3-json\b/, // the project file teams already commit
   /\bT3\.[a-z]\w*/, // the workflow script API (T3.workflow, T3.wait…)
   /\bT3(?=:\s*[{[(])/, // the T3 global that workflow scripts call
+  /=\s+T3(?=\s*;)|`T3`/, // and destructure (const { workflow, step } = T3;), named as code
   /\bT3-(?:Mode-Limit|Sender|INSIGHT)\b/, // header and marker names
   /\bT3\.[A-Z]\w*|\bT3-[A-Z][a-zA-Z]*(?:-[A-Z][a-zA-Z]*)+/, // PowerShell type, header and trailer names
   /\bT3[A-Z_]\w*|\b\w+T3\w*|\bt3[A-Z]\w*|\bt3_\w+/, // code identifiers
@@ -66,7 +67,10 @@ const SKIP: readonly RegExp[] = [
 /** Areas not rebranded yet: skipped by default, scanned as pending by `--strict`. */
 const PENDING_AREAS: readonly (readonly [RegExp, string])[] = [
   [/^apps\/marketing\//, "T3's website: replace with Zharf Code's download page"],
-  [/^\.github\//, "T3's CI workflows: replace with the fork's release workflows"],
+  [
+    /^\.github\/(?!triage\/|ISSUE_TEMPLATE\/)/,
+    "T3's CI workflows: replace with the fork's release workflows",
+  ],
   [/^apps\/mobile\/|^scripts\/mobile-/, "phone apps: own bundle ids, Apple team, Expo project"],
   [/^infra\/relay\//, "relay: deploy Zharf Connect"],
   [

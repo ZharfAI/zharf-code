@@ -29,12 +29,10 @@
 .github/workflows/stale-needs-more-info.yml
 .github/workflows/thread-transfer-report.yml
 .github/workflows/web-preview.yml
-.github/triage
 .github/readme
 .github/VOUCHED.td
 .github/TRIAGE_EXEMPTIONS.td
 .github/SECURITY.md
-.github/ISSUE_TEMPLATE/via-triage.yml
 .github/scripts/mirror-play-apk.cjs
 .github/scripts/mobile-ios-preview-record.cjs
 
