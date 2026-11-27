@@ -33,7 +33,7 @@ const KEEP: readonly RegExp[] = [
   /\bt3code[A-Z_]\w*|\/__t3code\/|t3code-\$\{|com\.example\.t3code/, // identifiers
   /\bt3code(?=[-/[]|\(\?:\[-\/\])/, // legacy branch prefixes still recognized
   /\.t3code\b|\b__t3code\w*/, // manifest fields, globals
-  /\bt3#\w+|"name":\s*"t3"|--filter\s+t3\b|affected\.includes\("t3"\)/, // the server's workspace package name
+  /\bt3#\w+|"name":\s*"t3"|--filter[=\s]+t3\b|affected\.includes\("t3"\)/, // the server's workspace package name
   /(?:const|let|var|return|[{,(])\s*t3\b|\bt3(?=\s*(?:[:,})]|!==|===|=[^=]))|[{,]t3:/, // code named t3
 ];
 
