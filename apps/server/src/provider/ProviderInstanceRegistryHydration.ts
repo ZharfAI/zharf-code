@@ -32,6 +32,7 @@ import type * as ProviderHost from "@t3tools/provider-core/server/ProviderHost";
 import type * as BackgroundPolicy from "../background/BackgroundPolicy.ts";
 import * as ServerConfig from "../config.ts";
 import type * as PortScanner from "../preview/PortScanner.ts";
+import * as ZharfSignIn from "../zharf/ZharfSignIn.ts";
 
 type ProviderInstanceRegistryHydrationEnv =
   | Exclude<
@@ -39,6 +40,7 @@ type ProviderInstanceRegistryHydrationEnv =
       | ProviderOrchestrationAdapterInfrastructure.ProviderOrchestrationAdapterInfrastructure
       | AcpRegistrySupport.AcpRegistryCatalog
       | ProviderHost.ProviderHost
+      | ZharfSignIn.ZharfSignIn
     >
   | Settings.ServerSettingsService
   | BackgroundPolicy.BackgroundPolicy
@@ -182,6 +184,9 @@ export const layer: Layer.Layer<
     yield* seedDevReplayInstance().pipe(
       Effect.catchCause((cause) => Effect.logWarning("Dev replay agent unavailable", cause)),
     );
+    yield* ZharfSignIn.startZharfAgents().pipe(
+      Effect.catchCause((cause) => Effect.logWarning("Zharf agents not set up", cause)),
+    );
     // Subscribe before the seed read so saves during registry construction are queued.
     const settingsChanges = yield* serverSettings.subscribeChanges;
     const initialSettings: ServerSettings | undefined = yield* serverSettings.getSettings.pipe(
@@ -210,6 +215,7 @@ export const layer: Layer.Layer<
       Layer.provide(providerHostLayer),
       Layer.provide(Layer.succeed(HostProcess.Environment, hostEnvironment)),
       Layer.provide(SecretResolver.layer),
+      Layer.provide(ZharfSignIn.layer),
     );
 
     return layerSettingsWatcher(settingsChanges, initialSettings).pipe(

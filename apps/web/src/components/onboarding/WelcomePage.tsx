@@ -65,6 +65,7 @@ import {
   resolveOnboardingProviderInstallCommand,
   resolveOnboardingProviderLoginCommand,
 } from "../../onboarding/providerReadiness.logic";
+import { isZharfAgent } from "../../zharf/zharfAgents";
 import {
   cliTerminalStep,
   codexCardProvider,
@@ -443,7 +444,8 @@ function AgentsSection({
     return (
       isInstallableDriver(provider.driver) &&
       !isBrokenVersion(provider) &&
-      (state === "install" || state === "signIn")
+      // A Zharf agent signs in on its settings page, not with the agent's own login command.
+      (state === "install" || (state === "signIn" && !isZharfAgent(provider)))
     );
   };
   // Codex's card also offers ChatGPT sign-in, which still works when the CLI check failed.

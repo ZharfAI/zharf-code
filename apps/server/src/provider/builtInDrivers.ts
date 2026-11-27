@@ -16,6 +16,7 @@ import type {
   ProviderUsageReaderEnv,
 } from "@t3tools/provider-core/server/driver";
 import { KiroDriver, type KiroDriverEnv } from "@t3tools/provider-kiro/server";
+import { withZharfSignIn, type ZharfSignIn } from "../zharf/ZharfSignIn.ts";
 
 export type BuiltInDriversEnv =
   | AcpRegistryDriverEnv
@@ -28,11 +29,13 @@ export type BuiltInDriversEnv =
   | KiroDriverEnv
   | OpenCodeDriverEnv
   | PiDriverEnv
-  | MuseDriverEnv;
+  | MuseDriverEnv
+  | ZharfSignIn;
 
 export const BUILT_IN_DRIVERS: ReadonlyArray<AnyProviderDriver<BuiltInDriversEnv>> = [
-  CodexDriver,
-  ClaudeDriver,
+  // The Zharf agents are instances of these two (zharf/ZharfAgents.ts)
+  withZharfSignIn(CodexDriver),
+  withZharfSignIn(ClaudeDriver),
   CursorDriver,
   GrokDriver,
   FxDriver,

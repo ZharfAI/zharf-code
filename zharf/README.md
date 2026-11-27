@@ -74,6 +74,21 @@ keeps provider instances of upstream's own drivers pointed at platform.zharf.ai.
   does not advertise. So the platform's coding models (text out, tool calls) are written into
   each instance's `customModels`; DeepSeek, GLM and GPT models then run in both agents.
 
+**Sign in with Zharf** (`apps/server/src/zharf/`, hooked in from `builtInDrivers.ts`,
+`ProviderInstanceRegistryHydration.ts` and the welcome page):
+
+- On first start the server adds the two agents, `zharfClaude` and `zharfCodex`, with the
+  variables above and a blank key, so a key or login in the user's shell never reaches the
+  platform. One the user removes is not added again (`userdata/zharf-agents.json`).
+- Their sign-in is the platform's device flow (`client: "zharf-code"`). The key is saved as a
+  secret variable in both agents (secret store, not `settings.json`), with the platform's coding
+  models; the model list is refreshed in the background at each start.
+- Saving the key rebuilds the agents, so the sign-in lives for the server's lifetime and each
+  rebuilt agent gets the same one.
+- `ZHARF_CODE_PLATFORM_URL` points a development build at another platform;
+  `ZHARF_CODE_AGENTS=off` leaves the agents out (the server's tests set it, since upstream's
+  tests expect only upstream's agents).
+
 ## Brand
 
 - Name: Zharf Code. Command: `zharf-code`. App id: `ai.zharf.code`. URL scheme: `zharfcode://`.

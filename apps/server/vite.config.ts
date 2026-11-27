@@ -180,6 +180,8 @@ export default mergeConfig(
       ],
       hookTimeout: 120_000,
       testTimeout: 120_000,
+      // Upstream's tests expect only upstream's agents (zharf/ZharfSignIn.ts)
+      env: { ZHARF_CODE_AGENTS: "off" },
     },
   }),
 );

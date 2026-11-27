@@ -11,6 +11,7 @@ import {
 } from "@t3tools/contracts";
 
 import { getOnboardingProviderState } from "./providerReadiness.logic";
+import { isZharfAgent } from "../zharf/zharfAgents";
 
 type ComputerSettings = Pick<ServerSettings, "providerInstances" | "projectSettingsOverrides">;
 
@@ -124,6 +125,7 @@ export function codexNeedsSetup(
 ) {
   if (
     provider.driver !== "codex" ||
+    isZharfAgent(provider) ||
     provider.auth.status === "authenticated" ||
     isBrokenVersion(provider)
   ) {
